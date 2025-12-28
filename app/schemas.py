@@ -16,7 +16,7 @@ class UserResponse(BaseModel):
     xp: int
     
     class Config:
-        orm_mode = True
+        from_attributes = True
 
 # 운동 정보를 보여줄 때 쓰는 틀
 class ExerciseResponse(BaseModel):
@@ -51,3 +51,11 @@ class MealResponse(BaseModel):
     traffic_light: str  # "🟢 GREEN", "🟡 YELLOW", "🔴 RED"
     feedback: str       # "단백질 굿!", "너무 기름져요"
     earned_xp: int      # 획득 경험치
+
+
+# 로그인할 때 보낼 데이터
+class UserLogin(BaseModel):
+    username: str
+    password: str
+
+

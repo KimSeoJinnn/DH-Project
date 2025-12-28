@@ -97,3 +97,24 @@ async def analyze_meal(
         "feedback": result["msg"],
         "earned_xp": result["xp"]
     }
+
+
+# 로그인 API
+@app.post("/users/login")
+def login(user: schemas.UserLogin, db: Session = Depends(get_db)):
+    # 1. 아이디 찾기
+    db_user = crud.get_user_by_username(db, username=user.username)
+    if not db_user:
+        raise HTTPException(status_code=400, detail="아이디가 없습니다.")
+    
+    # 2. 비밀번호 맞는지 검사 (crud에 만든 함수 사용)
+    if not crud.verify_password(user.password, db_user.hashed_password):
+        raise HTTPException(status_code=400, detail="비밀번호가 틀렸습니다.")
+    
+    # 3. 성공 시 유저 정보 반환
+    return {
+        "message": "로그인 성공! 💪",
+        "user_id": db_user.id,
+        "username": db_user.username,
+        "level": db_user.level
+    }
