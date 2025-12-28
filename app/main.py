@@ -2,6 +2,9 @@
 from fastapi import FastAPI, Depends, HTTPException, UploadFile, File, Form
 from sqlalchemy.orm import Session
 from app import models, database, schemas, crud
+from typing import List # 리스트 형태를 쓰기 위해 필요
+from pydantic import BaseModel
+import random
 
 # DB 테이블 생성 (sql_app.db 파일이 없으면 자동 생성)
 models.Base.metadata.create_all(bind=database.engine)
@@ -31,10 +34,6 @@ def signup(user: schemas.UserCreate, db: Session = Depends(get_db)):
     # 없으면 저장
     return crud.create_user(db=db, user=user)
 
-
-
-from typing import List # 리스트 형태를 쓰기 위해 필요
-
 # 1. 관리자용: 기초 운동 데이터 생성 API
 @app.post("/exercises/init")
 def init_data(db: Session = Depends(get_db)):
@@ -48,8 +47,6 @@ def init_data(db: Session = Depends(get_db)):
 def get_today_quests(db: Session = Depends(get_db)):
     return crud.get_random_quests(db, limit=3)
 
-
-
 # 퀘스트 완료 API
 @app.post("/quests/complete", response_model=schemas.QuestResponse)
 def complete_quest_api(quest: schemas.QuestComplete, db: Session = Depends(get_db)):
@@ -57,10 +54,6 @@ def complete_quest_api(quest: schemas.QuestComplete, db: Session = Depends(get_d
     if not result:
         raise HTTPException(status_code=404, detail="사용자를 찾을 수 없습니다.")
     return result
-
-
-
-import random
 
 # AI 식단 분석 API (가짜 AI)
 @app.post("/meals/analyze", response_model=schemas.MealResponse)
@@ -70,9 +63,6 @@ async def analyze_meal(
     db: Session = Depends(get_db)
 ):
     # --- 🤖 가상의 AI 분석 로직 시작 ---
-    # 실제로는 여기서 이미지를 YOLO 모델에 넣어야 합니다.
-    # 지금은 랜덤으로 결과를 뽑습니다.
-    
     ai_results = [
         {"color": "🟢 GREEN", "msg": "완벽해요! 단백질이 풍부하네요.", "xp": 5},
         {"color": "🟡 YELLOW", "msg": "나쁘지 않아요. 국물은 남기세요.", "xp": 2},
@@ -98,7 +88,6 @@ async def analyze_meal(
         "earned_xp": result["xp"]
     }
 
-
 # 로그인 API
 @app.post("/users/login")
 def login(user: schemas.UserLogin, db: Session = Depends(get_db)):
@@ -117,4 +106,39 @@ def login(user: schemas.UserLogin, db: Session = Depends(get_db)):
         "user_id": db_user.id,
         "username": db_user.username,
         "level": db_user.level
+    }
+
+# ★ [수정] BaseModel이 이제 정의되어서 에러가 안 납니다.
+class WorkoutRequest(BaseModel):
+    username: str
+    exercise: str
+    count: str
+
+# 2. 운동 기록 및 레벨업 처리
+
+# [수정 후 (새로운 코드) - 이렇게 되어야 함!]
+@app.post("/users/workout")
+def record_workout(request: WorkoutRequest, db: Session = Depends(get_db)):
+    user = db.query(models.User).filter(models.User.username == request.username).first()
+    if not user:
+        raise HTTPException(status_code=404, detail="유저를 찾을 수 없습니다.")
+    
+    # ★ 여기가 핵심! 레벨이 아니라 경험치를 줍니다.
+    gain_xp = 10 
+    user.exp += gain_xp
+    
+    message = f"운동 완료! 경험치 +{gain_xp} 획득!"
+    
+    # 경험치 100 넘으면 레벨업
+    if user.exp >= 100:
+        user.level += 1
+        user.exp = 0 
+        message = f"🎉 축하합니다! 레벨업! (Lv.{user.level})"
+        
+    db.commit()
+    
+    return {
+        "message": message, 
+        "new_level": user.level,
+        "current_xp": user.exp 
     }
