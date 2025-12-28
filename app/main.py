@@ -115,17 +115,30 @@ class WorkoutRequest(BaseModel):
     count: str
 
 # 2. 운동 기록 및 레벨업 처리
+
+# [수정 후 (새로운 코드) - 이렇게 되어야 함!]
 @app.post("/users/workout")
 def record_workout(request: WorkoutRequest, db: Session = Depends(get_db)):
-    # 유저 찾기
-    # ★ [수정] 그냥 User라고 쓰면 모릅니다. models.User 라고 해야 합니다!
     user = db.query(models.User).filter(models.User.username == request.username).first()
-    
     if not user:
         raise HTTPException(status_code=404, detail="유저를 찾을 수 없습니다.")
     
-    # ★ 핵심 로직: 운동하면 레벨 +1 상승!
-    user.level += 1
+    # ★ 여기가 핵심! 레벨이 아니라 경험치를 줍니다.
+    gain_xp = 10 
+    user.exp += gain_xp
+    
+    message = f"운동 완료! 경험치 +{gain_xp} 획득!"
+    
+    # 경험치 100 넘으면 레벨업
+    if user.exp >= 100:
+        user.level += 1
+        user.exp = 0 
+        message = f"🎉 축하합니다! 레벨업! (Lv.{user.level})"
+        
     db.commit()
     
-    return {"message": "운동 완료!", "new_level": user.level}
+    return {
+        "message": message, 
+        "new_level": user.level,
+        "current_xp": user.exp 
+    }
