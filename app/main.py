@@ -118,3 +118,24 @@ def login(user: schemas.UserLogin, db: Session = Depends(get_db)):
         "username": db_user.username,
         "level": db_user.level
     }
+
+
+# 1. 운동 데이터 받을 틀 만들기
+class WorkoutRequest(BaseModel):
+    username: str
+    exercise: str
+    count: str
+
+# 2. 운동 기록 및 레벨업 처리 API
+@app.post("/users/workout")
+def record_workout(request: WorkoutRequest, db: Session = Depends(get_db)):
+    # 유저 찾기
+    user = db.query(User).filter(User.username == request.username).first()
+    if not user:
+        raise HTTPException(status_code=404, detail="유저를 찾을 수 없습니다.")
+    
+    # ★ 핵심: 레벨 1 증가!
+    user.level += 1
+    db.commit()
+    
+    return {"message": "운동 완료!", "new_level": user.level}
