@@ -18,7 +18,7 @@ class User(Base):
     weight = Column(Integer)
     
     level = Column(Integer, default=1)
-    xp = Column(Integer, default=0)
+    exp = Column(Integer, default=0)
     streak = Column(Integer, default=0)
     last_login = Column(Date, default=datetime.now().date)
 
