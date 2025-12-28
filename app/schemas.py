@@ -1,90 +1,62 @@
 # app/schemas.py
-
 from pydantic import BaseModel
-from typing import Optional, Union  # "값이 없을 수도 있음(None)"을 표현하기 위해 가져옴
+from typing import List, Optional
 from datetime import date           # 날짜 처리를 위해 가져옴
 
-# ==========================================
-# 1. 회원(User) 관련 스키마
-# ==========================================
-
-# [회원가입] 사용자가 가입할 때 보낼 정보
-class UserCreate(BaseModel):
+# 1. 기본 유저 형태
+class UserBase(BaseModel):
     username: str
-    password: str   # "1234" 같은 비밀번호 (서버가 받아서 암호화함)
-    height: int
-    weight: int
 
-# [로그인] 사용자가 로그인할 때 보낼 정보
-# ★ 중요: 이게 없으면 로그인 기능을 못 만듭니다!
+# 2. 회원가입할 때 받는 정보 (아이디, 비번)
+class UserCreate(UserBase):
+    password: str
+
+# 3. 운동 데이터 형태
+class ExerciseBase(BaseModel):
+    name: str
+    description: Optional[str] = None
+    category: str
+
+class ExerciseResponse(ExerciseBase):
+    id: int
+    class Config:
+        from_attributes = True  # (구버전 orm_mode = True)
+
+# 4. 퀘스트 데이터 형태
+class QuestBase(BaseModel):
+    exercise_id: int
+    target_count: str
+
+class QuestResponse(QuestBase):
+    id: int
+    is_completed: bool
+    user_id: int
+    exercise: ExerciseResponse
+    
+    class Config:
+        from_attributes = True
+
+class QuestComplete(BaseModel):
+    username: str
+    quest_id: int
+
+# 5. 식단 분석 결과 형태
+class MealResponse(BaseModel):
+    traffic_light: str
+    feedback: str
+    earned_xp: int
+
+# 6. 로그인할 때 받는 정보
 class UserLogin(BaseModel):
     username: str
     password: str
 
-# [응답] 내 정보 보기 등을 할 때 서버가 돌려줄 정보
-# 비밀번호는 보안상 절대 돌려주면 안 되므로 뺐습니다.
-class UserResponse(BaseModel):
+# ★ 7. 서버가 응답할 유저 정보 (여기에 exp가 꼭 있어야 함!)
+class UserResponse(UserBase):
     id: int
-    username: str
     level: int
-    xp: int
-    
-    # DB 데이터를 Pydantic 모델로 변환할 때 필요함 (필수 설정)
-    class Config:
-        from_attributes = True
-
-
-# ==========================================
-# 2. 운동(Exercise) 관련 스키마
-# ==========================================
-
-# [생성] 운동 데이터를 처음 만들 때 필요한 정보
-class ExerciseCreate(BaseModel):
-    name: str           # 운동 이름 (예: 스쿼트)
-    category: str       # 부위 (예: 하체, 전신)
-    description: Optional[str] = None  # 설명 (없어도 됨)
-    xp_value: int = 10  # 이거 하면 주는 경험치
-
-# [조회] 운동 목록을 보여줄 때 쓰는 틀
-class ExerciseResponse(BaseModel):
-    id: int
-    name: str
-    category: str
-    description: Union[str, None] = None # 설명은 없을 수도 있음 (None 허용)
-    xp_value: int
-
-    class Config:
-        from_attributes = True
-
-
-# ==========================================
-# 3. 퀘스트(Quest) 관련 스키마
-# ==========================================
-
-# [요청] 사용자가 "나 퀘스트 깼어요!" 하고 보낼 데이터
-class QuestComplete(BaseModel):
-    user_id: int        # 누가 깼는지
-    quest_name: str     # 무슨 운동을 했는지
-    earned_xp: int      # 경험치 얼마 받았는지
-
-# [응답] 퀘스트 완료 후 서버가 "축하합니다!" 하고 보낼 데이터
-class QuestResponse(BaseModel):
-    message: str        # "경험치 10 획득!" 또는 "레벨업 성공!"
-    current_level: int  # 현재 레벨
-    current_xp: int     # 현재 경험치
-    required_xp: int    # 다음 레벨까지 남은 경험치
-
-
-# ==========================================
-# 4. 식단(Meal) 관련 스키마
-# ==========================================
-
-# [응답] AI가 분석한 식단 결과를 프론트엔드에 줄 때
-class MealResponse(BaseModel):
-    traffic_light: str  # "🟢", "🟡", "🔴" 신호등 결과
-    feedback: str       # "단백질이 부족해요" 같은 피드백
-    earned_xp: int      # 획득한 경험치
-    image_url: Optional[str] = None # 음식 사진 주소 (없을 수도 있음)
+    exp: int  # ★ [추가] 이게 없어서 에러가 난 겁니다!
+    items: List[str] = [] 
 
     class Config:
         from_attributes = True
