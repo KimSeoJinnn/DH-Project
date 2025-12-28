@@ -142,3 +142,15 @@ def record_workout(request: WorkoutRequest, db: Session = Depends(get_db)):
         "new_level": user.level,
         "current_xp": user.exp 
     }
+
+
+# 랭킹 조회 API (레벨 높은 순, 경험치 높은 순으로 정렬)
+@app.get("/users/ranking")
+def get_ranking(db: Session = Depends(get_db)):
+    # 레벨 내림차순(desc), 경험치 내림차순(desc)으로 상위 10명 가져오기
+    top_users = db.query(models.User).order_by(
+        models.User.level.desc(), 
+        models.User.exp.desc()
+    ).limit(10).all()
+    
+    return top_users
