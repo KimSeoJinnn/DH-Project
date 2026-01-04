@@ -7,6 +7,7 @@ current_username = ""
 def main(page: ft.Page):
     global current_username
     
+    # 📱 1. 앱 기본 설정
     page.title = "헬린이 키우기"
     page.window.width = 400
     page.window.height = 700
@@ -14,11 +15,81 @@ def main(page: ft.Page):
     page.bgcolor = "black"
     page.horizontal_alignment = ft.CrossAxisAlignment.CENTER
 
+    # 메인 화면 갱신용 위젯
     level_text = ft.Text(size=20, color="yellow", weight="bold")
     xp_text = ft.Text(size=14, color="white")
     
     # -------------------------------------------------
-    # 1. 🏆 랭킹 팝업창 (에러 수정됨!)
+    # 👶 2. 회원가입 팝업창 (새로 추가됨!)
+    # -------------------------------------------------
+    def show_signup_modal(e):
+        # 입력창 만들기
+        new_id = ft.TextField(label="사용할 아이디")
+        new_pw = ft.TextField(label="사용할 비밀번호", password=True, can_reveal_password=True)
+        
+        def close_signup(e):
+            signup_dlg.open = False
+            page.update()
+
+        def try_signup(e):
+            if not new_id.value or not new_pw.value:
+                return
+            
+            # 서버로 가입 요청
+            signup_data = {
+                "username": new_id.value,
+                "password": new_pw.value,
+                "level": 1,
+                "exp": 0
+            }
+            
+            try:
+                res = requests.post(f"{SERVER_URL}/users/signup", json=signup_data)
+                
+                if res.status_code == 200:
+                    # 성공하면 팝업 닫고 로그인 창에 아이디 채워주기
+                    signup_dlg.open = False
+                    username_input.value = new_id.value # 로그인창 아이디 자동 입력
+                    password_input.value = ""           # 비번은 비워두기
+                    
+                    page.snack_bar = ft.SnackBar(ft.Text("✅ 가입 성공! 로그인 해주세요."), bgcolor="green")
+                    page.snack_bar.open = True
+                    page.update()
+                
+                elif res.status_code == 400:
+                    # 이미 있는 아이디일 경우
+                    page.snack_bar = ft.SnackBar(ft.Text("❌ 이미 존재하는 아이디입니다."), bgcolor="red")
+                    page.snack_bar.open = True
+                    page.update()
+                    
+                else:
+                    print(f"가입 실패: {res.text}")
+                    
+            except Exception as err:
+                print(f"에러: {err}")
+                page.snack_bar = ft.SnackBar(ft.Text("서버 연결 오류"), bgcolor="red")
+                page.snack_bar.open = True
+                page.update()
+
+        # 팝업 조립
+        signup_dlg = ft.AlertDialog(
+            title=ft.Text("회원가입 👶"),
+            content=ft.Column([
+                ft.Text("멋진 아이디를 만들어보세요!"),
+                new_id,
+                new_pw
+            ], height=200, tight=True),
+            actions=[
+                ft.TextButton("취소", on_click=close_signup),
+                ft.FilledButton("가입하기", on_click=try_signup, style=ft.ButtonStyle(bgcolor="green", color="white")),
+            ],
+        )
+        page.overlay.append(signup_dlg)
+        signup_dlg.open = True
+        page.update()
+
+    # -------------------------------------------------
+    # 🏆 3. 랭킹 팝업창
     # -------------------------------------------------
     def show_ranking(e):
         try:
@@ -26,17 +97,11 @@ def main(page: ft.Page):
             if res.status_code == 200:
                 rank_list = res.json()
                 
-                # 랭킹 리스트 만들기 (UI)
                 rank_ui_items = []
                 for idx, user in enumerate(rank_list):
                     rank = idx + 1
                     medal = "🥇" if rank == 1 else "🥈" if rank == 2 else "🥉" if rank == 3 else f"{rank}위"
-                    
-                    # 내 아이디면 색깔 다르게 표시
                     is_me = (user['username'] == current_username)
-                    
-                    # ★ [수정] 에러나던 ft.colors... 제거하고 단순한 문자열 사용!
-                    # "blue" = 파란색, "white10" = 투명한 흰색
                     bg_color = "blue" if is_me else "white10" 
                     
                     rank_ui_items.append(
@@ -47,35 +112,30 @@ def main(page: ft.Page):
                                 ft.Text(f"Lv.{user['level']}", size=14, color="yellow"),
                             ], alignment=ft.MainAxisAlignment.SPACE_BETWEEN),
                             padding=10,
-                            bgcolor=bg_color, # 수정된 색상 적용
+                            bgcolor=bg_color,
                             border_radius=10
                         )
                     )
 
-                # 닫기 함수
                 def close_rank(e):
                     rank_dlg.open = False
                     page.update()
 
-                # 팝업 조립
                 rank_dlg = ft.AlertDialog(
                     title=ft.Text("🏆 명예의 전당"),
                     content=ft.Column(rank_ui_items, height=300, scroll="auto"),
                     actions=[ft.TextButton("닫기", on_click=close_rank)],
                 )
-                
                 page.overlay.append(rank_dlg)
                 rank_dlg.open = True
                 page.update()
-                
             else:
                 print("랭킹 불러오기 실패")
-
         except Exception as err:
             print(f"에러: {err}")
 
     # -------------------------------------------------
-    # 2. 🏋️ 운동 기록 로직
+    # 🏋️ 4. 운동 기록 로직
     # -------------------------------------------------
     def open_record_modal(e):
         exercise_input = ft.TextField(label="종목", autofocus=True)
@@ -103,11 +163,9 @@ def main(page: ft.Page):
                     current_xp = result.get('current_xp', 0)
                     message = result.get('message', '기록 완료!')
 
-                    # 메인 화면 갱신
                     level_text.value = f"현재 레벨: Lv.{new_level}"
                     xp_text.value = f"경험치: {current_xp} / 100 XP"
                     
-                    # 팝업 내용 변경
                     dlg.title.value = "✅ 기록 성공!"
                     dlg.content.controls.clear()
                     dlg.content.controls.append(
@@ -140,7 +198,7 @@ def main(page: ft.Page):
         page.update()
 
     # -------------------------------------------------
-    # 3. 🚦 로그인 로직
+    # 🚦 5. 로그인 로직
     # -------------------------------------------------
     def login_click(e):
         global current_username
@@ -173,18 +231,10 @@ def main(page: ft.Page):
                             level_text, xp_text,
                             ft.Container(height=40), 
                             
-                            ft.FilledButton(
-                                "오늘 운동 기록하기 📝", width=300, height=60,
-                                style=ft.ButtonStyle(bgcolor="blue", color="white"),
-                                on_click=open_record_modal 
-                            ),
+                            ft.FilledButton("오늘 운동 기록하기 📝", width=300, height=60, style=ft.ButtonStyle(bgcolor="blue", color="white"), on_click=open_record_modal),
                             ft.Container(height=15), 
                             
-                            ft.FilledButton(
-                                "전체 랭킹 확인하기 🏆", width=300, height=60,
-                                style=ft.ButtonStyle(bgcolor="green", color="white"),
-                                on_click=show_ranking 
-                            ),
+                            ft.FilledButton("전체 랭킹 확인하기 🏆", width=300, height=60, style=ft.ButtonStyle(bgcolor="green", color="white"), on_click=show_ranking),
                             ft.Container(height=50),
                             ft.Text("💪", size=80),
                             ft.Text("꾸준함이 답이다!", size=14, color="grey"),
@@ -204,20 +254,32 @@ def main(page: ft.Page):
             login_btn.text = "서버 에러"
             page.update()
 
-    # 초기 화면
+    # -------------------------------------------------
+    # 🏁 6. 초기 화면 (로그인 창)
+    # -------------------------------------------------
     logo = ft.Text("🏋️", size=70)
     title = ft.Text("헬린이 키우기", size=28, weight="bold")
     username_input = ft.TextField(label="아이디", width=300)
     password_input = ft.TextField(label="비밀번호", width=300, password=True, can_reveal_password=True)
+    
     login_btn = ft.FilledButton("로그인", width=300, height=50, on_click=login_click)
+    
+    # ★ 회원가입 버튼 추가
+    signup_btn = ft.TextButton("계정이 없으신가요? 회원가입", on_click=show_signup_modal)
 
     page.add(
         ft.Column(
-            [ft.Container(height=80), logo, ft.Container(height=20), title, ft.Container(height=50),
-             username_input, password_input, ft.Container(height=20), login_btn],
-            alignment=ft.MainAxisAlignment.START, horizontal_alignment=ft.CrossAxisAlignment.CENTER, expand=True
+            [
+                ft.Container(height=80), 
+                logo, ft.Container(height=20), title, ft.Container(height=50),
+                username_input, password_input, 
+                ft.Container(height=20), login_btn,
+                ft.Container(height=10), signup_btn # 버튼 배치
+            ],
+            alignment=ft.MainAxisAlignment.START, 
+            horizontal_alignment=ft.CrossAxisAlignment.CENTER, 
+            expand=True
         )
     )
 
-# 경고 메시지(Deprecation)는 무시하셔도 됩니다. 실행에는 문제 없습니다!
 ft.app(target=main)
