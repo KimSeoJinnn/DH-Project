@@ -106,6 +106,7 @@ def login(user: schemas.UserLogin, db: Session = Depends(get_db)):
         "user_id": db_user.id,
         "username": db_user.username,
         "level": db_user.level
+        "exp": db_user.exp
     }
 
 # ★ [수정] BaseModel이 이제 정의되어서 에러가 안 납니다.
