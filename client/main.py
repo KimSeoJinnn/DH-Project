@@ -20,12 +20,16 @@ def main(page: ft.Page):
     xp_text = ft.Text(size=14, color="white")
     
     # -------------------------------------------------
-    # 👶 2. 회원가입 팝업창 (새로 추가됨!)
+    # 👶 2. 회원가입 팝업창
     # -------------------------------------------------
     def show_signup_modal(e):
-        # 입력창 만들기
-        new_id = ft.TextField(label="사용할 아이디")
-        new_pw = ft.TextField(label="사용할 비밀번호", password=True, can_reveal_password=True)
+        # 회원가입에서도 엔터 치면 가입되게 만들기!
+        def try_signup_enter(e):
+            try_signup(e)
+
+        new_id = ft.TextField(label="사용할 아이디", autofocus=True)
+        # 비밀번호 입력하고 엔터치면 -> 가입 시도!
+        new_pw = ft.TextField(label="사용할 비밀번호", password=True, can_reveal_password=True, on_submit=try_signup_enter)
         
         def close_signup(e):
             signup_dlg.open = False
@@ -35,7 +39,6 @@ def main(page: ft.Page):
             if not new_id.value or not new_pw.value:
                 return
             
-            # 서버로 가입 요청
             signup_data = {
                 "username": new_id.value,
                 "password": new_pw.value,
@@ -47,17 +50,16 @@ def main(page: ft.Page):
                 res = requests.post(f"{SERVER_URL}/users/signup", json=signup_data)
                 
                 if res.status_code == 200:
-                    # 성공하면 팝업 닫고 로그인 창에 아이디 채워주기
                     signup_dlg.open = False
-                    username_input.value = new_id.value # 로그인창 아이디 자동 입력
-                    password_input.value = ""           # 비번은 비워두기
+                    username_input.value = new_id.value 
+                    password_input.value = ""
+                    password_input.focus() # 바로 비밀번호 입력하게 포커스 이동
                     
                     page.snack_bar = ft.SnackBar(ft.Text("✅ 가입 성공! 로그인 해주세요."), bgcolor="green")
                     page.snack_bar.open = True
                     page.update()
                 
                 elif res.status_code == 400:
-                    # 이미 있는 아이디일 경우
                     page.snack_bar = ft.SnackBar(ft.Text("❌ 이미 존재하는 아이디입니다."), bgcolor="red")
                     page.snack_bar.open = True
                     page.update()
@@ -71,7 +73,6 @@ def main(page: ft.Page):
                 page.snack_bar.open = True
                 page.update()
 
-        # 팝업 조립
         signup_dlg = ft.AlertDialog(
             title=ft.Text("회원가입 👶"),
             content=ft.Column([
@@ -138,8 +139,13 @@ def main(page: ft.Page):
     # 🏋️ 4. 운동 기록 로직
     # -------------------------------------------------
     def open_record_modal(e):
+        # 여기도 엔터키 기능 추가!
+        def save_workout_enter(e):
+            save_workout(e)
+
         exercise_input = ft.TextField(label="종목", autofocus=True)
-        count_input = ft.TextField(label="횟수")
+        # 횟수 입력하고 엔터치면 -> 기록 완료!
+        count_input = ft.TextField(label="횟수", on_submit=save_workout_enter)
 
         def close_dlg(e):
             dlg.open = False
@@ -177,7 +183,7 @@ def main(page: ft.Page):
                         ])
                     )
                     dlg.actions.clear()
-                    dlg.actions.append(ft.FilledButton("확인", on_click=close_dlg))
+                    dlg.actions.append(ft.FilledButton("확인", on_click=close_dlg, autofocus=True)) # 확인 버튼에 포커스
                     page.update()
                 else:
                     print(f"실패: {res.text}")
@@ -259,12 +265,12 @@ def main(page: ft.Page):
     # -------------------------------------------------
     logo = ft.Text("🏋️", size=70)
     title = ft.Text("헬린이 키우기", size=28, weight="bold")
-    username_input = ft.TextField(label="아이디", width=300)
-    password_input = ft.TextField(label="비밀번호", width=300, password=True, can_reveal_password=True)
+    
+    # ★ [핵심] 비밀번호 입력하고 엔터치면 -> 로그인 함수 실행!
+    username_input = ft.TextField(label="아이디", width=300, autofocus=True) # 앱 켜면 아이디창에 바로 커서
+    password_input = ft.TextField(label="비밀번호", width=300, password=True, can_reveal_password=True, on_submit=login_click)
     
     login_btn = ft.FilledButton("로그인", width=300, height=50, on_click=login_click)
-    
-    # ★ 회원가입 버튼 추가
     signup_btn = ft.TextButton("계정이 없으신가요? 회원가입", on_click=show_signup_modal)
 
     page.add(
@@ -274,7 +280,7 @@ def main(page: ft.Page):
                 logo, ft.Container(height=20), title, ft.Container(height=50),
                 username_input, password_input, 
                 ft.Container(height=20), login_btn,
-                ft.Container(height=10), signup_btn # 버튼 배치
+                ft.Container(height=10), signup_btn 
             ],
             alignment=ft.MainAxisAlignment.START, 
             horizontal_alignment=ft.CrossAxisAlignment.CENTER, 
