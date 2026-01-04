@@ -9,40 +9,17 @@ def main(page: ft.Page):
     
     page.title = "헬린이 키우기"
     page.window.width = 400
-    page.window.height = 700
+    page.window.height = 700 # 창 높이 700
     page.theme_mode = ft.ThemeMode.DARK
     page.bgcolor = "black"
     page.horizontal_alignment = ft.CrossAxisAlignment.CENTER
 
-    level_text = ft.Text(size=20, color="yellow", weight="bold")
-    xp_text = ft.Text(size=14, color="white")
+    level_text = ft.Text(size=24, color="yellow", weight="bold")
+    xp_text = ft.Text(size=12, color="white")
     xp_bar = ft.ProgressBar(width=200, color="orange", bgcolor="grey", value=0)
     
-    quest_list_view = ft.Column(spacing=10, scroll="auto", height=250)
-    debug_text = ft.Text("서버 연결 대기 중...", color="red", size=12)
-
-    # -------------------------------------------------
-    # 🆘 [긴급 추가] 데이터 강제 초기화 함수
-    # -------------------------------------------------
-    def force_init_data(e):
-        try:
-            debug_text.value = "데이터 생성 요청 중..."
-            page.update()
-            
-            # 관리자용 초기화 API 호출
-            res = requests.post(f"{SERVER_URL}/exercises/init")
-            
-            if res.status_code == 200:
-                debug_text.value = f"성공: {res.json()['message']}"
-                debug_text.color = "green"
-                # 데이터 만들었으니 다시 불러오기
-                load_quests()
-            else:
-                debug_text.value = f"실패: {res.status_code}"
-            page.update()
-        except Exception as err:
-            debug_text.value = f"에러: {err}"
-            page.update()
+    # 퀘스트 목록은 내용이 많으면 그 안에서만 스크롤되도록 설정 유지
+    quest_list_view = ft.Column(spacing=10, scroll="auto", height=280)
 
     # -------------------------------------------------
     # 📜 퀘스트 불러오기
@@ -50,7 +27,6 @@ def main(page: ft.Page):
     def load_quests(e=None):
         quest_list_view.controls.clear()
         quest_list_view.controls.append(ft.Text("📜 오늘의 퀘스트", size=16, weight="bold"))
-        debug_text.value = "데이터 불러오는 중..."
         page.update()
         
         try:
@@ -59,34 +35,40 @@ def main(page: ft.Page):
                 quests = res.json()
                 
                 if len(quests) == 0:
-                    debug_text.value = f"서버 응답: 데이터 0개 (비어있음)\n{res.text}"
                     quest_list_view.controls.append(ft.Text("퀘스트가 없습니다.", color="grey"))
                 else:
-                    debug_text.value = f"서버 응답 성공! ({len(quests)}개 가져옴)"
-                    debug_text.color = "green"
-                    
                     for q in quests:
+                        check_icon = ft.Text("⬜", size=24)
+                        
+                        def on_card_click(e, quest_name=q['name'], icon_widget=check_icon):
+                            print(f"클릭: {quest_name}") 
+                            if icon_widget.value == "⬜":
+                                icon_widget.value = "✅"
+                            else:
+                                icon_widget.value = "⬜"
+                            page.update()
+
                         card = ft.Container(
                             content=ft.Row([
                                 ft.Column([
                                     ft.Text(f"🔥 {q['name']}", size=16, weight="bold"),
                                     ft.Text(f"목표: {q['count']} | 난이도: {q['difficulty']}", size=12, color="grey"),
                                 ]),
-                                ft.Icon(ft.icons.CHECK_CIRCLE_OUTLINE, color="grey")
+                                check_icon 
                             ], alignment=ft.MainAxisAlignment.SPACE_BETWEEN),
                             bgcolor="white10",
-                            padding=15,
+                            padding=12,
                             border_radius=10,
                             width=300,
-                            on_click=lambda e: print(f"클릭: {q['name']}")
+                            on_click=on_card_click 
                         )
                         quest_list_view.controls.append(card)
-                page.update()
             else:
-                debug_text.value = f"서버 에러: {res.status_code}"
-                page.update()
+                quest_list_view.controls.append(ft.Text("서버 에러 발생", color="red"))
+            page.update()
         except Exception as err:
-            debug_text.value = f"연결 실패: {err}"
+            print(f"에러: {err}")
+            quest_list_view.controls.append(ft.Text("연결 실패", color="red"))
             page.update()
 
     # -------------------------------------------------
@@ -161,7 +143,6 @@ def main(page: ft.Page):
                     bg_color = "blue" if is_me else "white10" 
                     rank_ui_items.append(ft.Container(content=ft.Row([ft.Text(f"{medal}"), ft.Text(f"{user['username']}"), ft.Text(f"Lv.{user['level']}")], alignment=ft.MainAxisAlignment.SPACE_BETWEEN), padding=10, bgcolor=bg_color, border_radius=10))
                 
-                # ★ 랭킹창 닫기 버튼 수정 (overlay 방식에 맞게)
                 def close_rank_overlay(e):
                     rank_dlg.open = False
                     page.update()
@@ -195,9 +176,11 @@ def main(page: ft.Page):
                     new_level = result.get('new_level', 1)
                     current_xp = result.get('current_xp', 0)
                     message = result.get('message', '기록 완료!')
-                    level_text.value = f"현재 레벨: Lv.{new_level}"
+                    
+                    level_text.value = f"레벨 : Lv{new_level}"
                     xp_text.value = f"경험치: {current_xp} / 100 XP"
                     xp_bar.value = current_xp / 100
+                    
                     dlg.title.value = "✅ 기록 성공!"
                     dlg.content.controls.clear()
                     dlg.content.controls.append(ft.Column([ft.Text(message), ft.Container(height=10), ft.ProgressBar(value=current_xp/100, color="orange"), ft.Text(f"Lv.{new_level} (XP: {current_xp}/100)")] ) )
@@ -234,7 +217,7 @@ def main(page: ft.Page):
                 
                 page.clean()
                 
-                level_text.value = f"현재 레벨: Lv.{user_level}"
+                level_text.value = f"레벨 : Lv{user_level}"
                 xp_text.value = f"경험치: {user_xp} / 100 XP"
                 xp_bar.value = user_xp / 100
                 
@@ -242,30 +225,44 @@ def main(page: ft.Page):
 
                 page.add(
                     ft.Column([
-                        ft.Container(height=50),
+                        ft.Container(height=20),
+                        
                         ft.Text(f"🔥 {current_username}님!", size=25, weight="bold"),
-                        level_text,
-                        ft.Container(height=5),
-                        xp_bar, 
-                        ft.Container(height=5),
-                        xp_text,
-                        ft.Container(height=30),
+                        
+                        ft.Container(height=10),
+                        
+                        ft.Row(
+                            [
+                                level_text, 
+                                ft.Column(
+                                    [
+                                        ft.Container(content=xp_bar, margin=ft.margin.only(top=12)),
+                                        xp_text
+                                    ],
+                                    horizontal_alignment=ft.CrossAxisAlignment.CENTER,
+                                    spacing=2 
+                                )
+                            ],
+                            alignment=ft.MainAxisAlignment.CENTER,
+                            vertical_alignment=ft.CrossAxisAlignment.START, 
+                            spacing=15 
+                        ),
+                        
+                        ft.Container(height=15),
                         quest_list_view, 
                         
-                        debug_text, # 디버그 메시지
-                        
-                        # ★ [긴급 추가된 버튼 2개]
-                        ft.Row([
-                            ft.OutlinedButton("🔄 새로고침", on_click=load_quests),
-                            ft.FilledButton("🛠️ 데이터 강제 생성", on_click=force_init_data, style=ft.ButtonStyle(bgcolor="red")),
-                        ], alignment=ft.MainAxisAlignment.CENTER),
-                        
-                        ft.Container(height=20),
+                        ft.Container(height=10),
                         ft.FilledButton("오늘 운동 기록하기 📝", width=300, height=60, style=ft.ButtonStyle(bgcolor="blue", color="white"), on_click=open_record_modal),
-                        ft.Container(height=15), 
+                        
+                        ft.Container(height=10), 
                         ft.FilledButton("전체 랭킹 확인하기 🏆", width=300, height=60, style=ft.ButtonStyle(bgcolor="green", color="white"), on_click=show_ranking),
-                        ft.Container(height=50),
-                    ], alignment=ft.MainAxisAlignment.START, horizontal_alignment=ft.CrossAxisAlignment.CENTER)
+                        ft.Container(height=30),
+                    ], 
+                    alignment=ft.MainAxisAlignment.START, 
+                    horizontal_alignment=ft.CrossAxisAlignment.CENTER,
+                    # ★ [수정] scroll="auto" 삭제 -> 화면 높이 안 넘치면 스크롤 안 생김
+                    expand=True
+                    )
                 )
                 page.update()
             elif res.status_code == 400:

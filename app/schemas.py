@@ -1,7 +1,6 @@
 from pydantic import BaseModel
 from typing import Optional
 
-# 유저 관련 스키마
 class UserBase(BaseModel):
     username: str
 
@@ -15,11 +14,9 @@ class UserResponse(UserBase):
     id: int
     level: int
     exp: int
-
     class Config:
         orm_mode = True
 
-# ★ [추가됨] 운동 퀘스트 관련 스키마
 class ExerciseBase(BaseModel):
     name: str
     count: str
@@ -27,17 +24,15 @@ class ExerciseBase(BaseModel):
 
 class ExerciseResponse(ExerciseBase):
     id: int
-    
     class Config:
         orm_mode = True
 
-# 운동 기록 요청용
+# ★ [수정됨] 퀘스트 완료 요청 (누가, 어떤 난이도를 깼는지)
+class QuestComplete(BaseModel):
+    username: str
+    difficulty: str
+
 class WorkoutRequest(BaseModel):
     username: str
     exercise: str
     count: str
-
-# 퀘스트 완료 요청용 (나중에 사용)
-class QuestComplete(BaseModel):
-    username: str
-    quest_id: int

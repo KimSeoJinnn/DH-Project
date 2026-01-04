@@ -11,12 +11,7 @@ def get_user_by_username(db: Session, username: str):
 
 def create_user(db: Session, user: schemas.UserCreate):
     hashed_password = pwd_context.hash(user.password)
-    db_user = models.User(
-        username=user.username, 
-        hashed_password=hashed_password,
-        level=1,
-        exp=0
-    )
+    db_user = models.User(username=user.username, hashed_password=hashed_password, level=1, exp=0)
     db.add(db_user)
     db.commit()
     db.refresh(db_user)
@@ -25,13 +20,9 @@ def create_user(db: Session, user: schemas.UserCreate):
 def verify_password(plain_password, hashed_password):
     return pwd_context.verify(plain_password, hashed_password)
 
-# --- 퀘스트(운동) 관련 ---
-
-# 1. 운동 데이터 채워넣기 (초기화)
+# --- 퀘스트 관련 ---
 def initialize_exercises(db: Session):
-    if db.query(models.Exercise).first():
-        return None
-    
+    if db.query(models.Exercise).first(): return None
     sample_exercises = [
         models.Exercise(name="스쿼트", count="15회", difficulty="하"),
         models.Exercise(name="스쿼트", count="30회", difficulty="중"),
@@ -50,21 +41,50 @@ def initialize_exercises(db: Session):
         models.Exercise(name="버피테스트", count="10회", difficulty="상"),
         models.Exercise(name="버피테스트", count="20회", difficulty="최상"),
     ]
-    
     db.add_all(sample_exercises)
     db.commit()
-    print("✅ 운동 데이터 생성 완료!") # 로그 확인용
+    return "운동 데이터 생성 완료!"
 
-# 2. 랜덤 퀘스트 뽑기 (★수정된 부분)
 def get_random_quests(db: Session, limit: int = 3):
     exercises = db.query(models.Exercise).all()
-    
-    # ★ [핵심] 만약 조회했는데 데이터가 하나도 없다?
     if not exercises:
-        print("⚠️ 데이터가 없어서 새로 만듭니다.")
-        initialize_exercises(db) # 바로 데이터를 채워넣음
-        exercises = db.query(models.Exercise).all() # 다시 조회
-        
-    if len(exercises) < limit:
-        return exercises
+        initialize_exercises(db)
+        exercises = db.query(models.Exercise).all()
+    if len(exercises) < limit: return exercises
     return random.sample(exercises, limit)
+
+# ★ [추가됨] 퀘스트 완료하고 보상 주는 함수
+def complete_quest(db: Session, request: schemas.QuestComplete):
+    user = get_user_by_username(db, request.username)
+    if not user:
+        return None
+    
+    # 1. 난이도별 경험치 책정
+    xp_map = {
+        "하": 5,
+        "중": 10,
+        "상": 15,
+        "최상": 20
+    }
+    # DB에 없는 난이도면 기본 5점
+    gain_xp = xp_map.get(request.difficulty, 5)
+
+    # 2. 경험치 지급
+    user.exp += gain_xp
+    message = f"보상 획득! (+{gain_xp} XP)"
+
+    # 3. 레벨업 체크
+    if user.exp >= 100:
+        user.level += 1
+        user.exp = user.exp - 100 # 남은 경험치 이월
+        message = f"🎉 레벨업! (Lv.{user.level})"
+
+    db.commit()
+    db.refresh(user)
+
+    return {
+        "message": message,
+        "new_level": user.level,
+        "current_xp": user.exp,
+        "gained_xp": gain_xp
+    }
