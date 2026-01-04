@@ -3,9 +3,7 @@ from sqlalchemy.orm import Session
 from app import models, database, schemas, crud
 from typing import List
 
-# 테이블 자동 생성 시도
-try:
-    models.Base.metadata.create_all(bind=database.engine)
+try: models.Base.metadata.create_all(bind=database.engine)
 except: pass
 
 app = FastAPI()
@@ -16,8 +14,7 @@ def get_db():
     finally: db.close()
 
 @app.get("/")
-def read_root():
-    return {"message": "헬린이 키우기 서버 가동 중 🚀"}
+def read_root(): return {"message": "헬린이 키우기 서버 가동 중 🚀"}
 
 @app.post("/users/signup", response_model=schemas.UserResponse)
 def signup(user: schemas.UserCreate, db: Session = Depends(get_db)):
@@ -48,12 +45,11 @@ def get_today_quests(db: Session = Depends(get_db)):
         models.Base.metadata.create_all(bind=database.engine)
         return crud.get_random_quests(db, limit=3)
 
-# ★ [추가됨] 퀘스트 완료 API
+# ★ [확인] 이 부분이 있어야 합니다.
 @app.post("/quests/complete")
 def complete_quest_api(request: schemas.QuestComplete, db: Session = Depends(get_db)):
     result = crud.complete_quest(db, request)
-    if not result:
-        raise HTTPException(status_code=404, detail="유저를 찾을 수 없습니다.")
+    if not result: raise HTTPException(status_code=404, detail="유저를 찾을 수 없습니다.")
     return result
 
 @app.post("/users/workout")

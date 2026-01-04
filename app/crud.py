@@ -53,38 +53,23 @@ def get_random_quests(db: Session, limit: int = 3):
     if len(exercises) < limit: return exercises
     return random.sample(exercises, limit)
 
-# ★ [추가됨] 퀘스트 완료하고 보상 주는 함수
+# ★ [확인] request.difficulty를 쓰는지 확인하세요!
 def complete_quest(db: Session, request: schemas.QuestComplete):
     user = get_user_by_username(db, request.username)
-    if not user:
-        return None
+    if not user: return None
     
-    # 1. 난이도별 경험치 책정
-    xp_map = {
-        "하": 5,
-        "중": 10,
-        "상": 15,
-        "최상": 20
-    }
-    # DB에 없는 난이도면 기본 5점
+    xp_map = {"하": 5, "중": 10, "상": 15, "최상": 20}
     gain_xp = xp_map.get(request.difficulty, 5)
 
-    # 2. 경험치 지급
     user.exp += gain_xp
     message = f"보상 획득! (+{gain_xp} XP)"
 
-    # 3. 레벨업 체크
     if user.exp >= 100:
         user.level += 1
-        user.exp = user.exp - 100 # 남은 경험치 이월
+        user.exp -= 100 
         message = f"🎉 레벨업! (Lv.{user.level})"
 
     db.commit()
     db.refresh(user)
 
-    return {
-        "message": message,
-        "new_level": user.level,
-        "current_xp": user.exp,
-        "gained_xp": gain_xp
-    }
+    return {"message": message, "new_level": user.level, "current_xp": user.exp, "gained_xp": gain_xp}

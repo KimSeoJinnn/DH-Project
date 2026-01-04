@@ -9,7 +9,7 @@ def main(page: ft.Page):
     
     page.title = "헬린이 키우기"
     page.window.width = 400
-    page.window.height = 700 # 창 높이 700
+    page.window.height = 700 
     page.theme_mode = ft.ThemeMode.DARK
     page.bgcolor = "black"
     page.horizontal_alignment = ft.CrossAxisAlignment.CENTER
@@ -18,7 +18,6 @@ def main(page: ft.Page):
     xp_text = ft.Text(size=12, color="white")
     xp_bar = ft.ProgressBar(width=200, color="orange", bgcolor="grey", value=0)
     
-    # 퀘스트 목록은 내용이 많으면 그 안에서만 스크롤되도록 설정 유지
     quest_list_view = ft.Column(spacing=10, scroll="auto", height=280)
 
     # -------------------------------------------------
@@ -40,13 +39,45 @@ def main(page: ft.Page):
                     for q in quests:
                         check_icon = ft.Text("⬜", size=24)
                         
-                        def on_card_click(e, quest_name=q['name'], icon_widget=check_icon):
-                            print(f"클릭: {quest_name}") 
-                            if icon_widget.value == "⬜":
-                                icon_widget.value = "✅"
-                            else:
-                                icon_widget.value = "⬜"
-                            page.update()
+                        def on_card_click(e, quest_data=q, icon_widget=check_icon):
+                            if icon_widget.value == "✅":
+                                return
+
+                            print(f"퀘스트 완료 요청: {quest_data['name']}") 
+                            
+                            try:
+                                req_data = {
+                                    "username": current_username, 
+                                    "difficulty": quest_data['difficulty']
+                                }
+                                res = requests.post(f"{SERVER_URL}/quests/complete", json=req_data)
+                                
+                                if res.status_code == 200:
+                                    result = res.json()
+                                    icon_widget.value = "✅"
+                                    
+                                    new_level = result['new_level']
+                                    current_xp = result['current_xp']
+                                    message = result['message']
+                                    
+                                    level_text.value = f"레벨 : Lv{new_level}"
+                                    xp_text.value = f"경험치: {current_xp} / 100 XP"
+                                    xp_bar.value = current_xp / 100
+                                    
+                                    page.snack_bar = ft.SnackBar(ft.Text(f"💪 {message}"), bgcolor="green")
+                                    page.snack_bar.open = True
+                                    page.update()
+                                else:
+                                    # ★ [수정] 서버가 왜 거절했는지 이유를 출력합니다.
+                                    print(f"❌ 서버 거절 (코드 {res.status_code}):")
+                                    print(f"내용: {res.text}")
+                                    
+                                    page.snack_bar = ft.SnackBar(ft.Text(f"오류: {res.status_code} (터미널 확인)"), bgcolor="red")
+                                    page.snack_bar.open = True
+                                    page.update()
+
+                            except Exception as err:
+                                print(f"에러: {err}")
 
                         card = ft.Container(
                             content=ft.Row([
@@ -236,7 +267,8 @@ def main(page: ft.Page):
                                 level_text, 
                                 ft.Column(
                                     [
-                                        ft.Container(content=xp_bar, margin=ft.margin.only(top=12)),
+                                        # ★ [수정] 경고 해결: Margin 문법 수정
+                                        ft.Container(content=xp_bar, margin=ft.Margin(0, 12, 0, 0)),
                                         xp_text
                                     ],
                                     horizontal_alignment=ft.CrossAxisAlignment.CENTER,
@@ -260,7 +292,6 @@ def main(page: ft.Page):
                     ], 
                     alignment=ft.MainAxisAlignment.START, 
                     horizontal_alignment=ft.CrossAxisAlignment.CENTER,
-                    # ★ [수정] scroll="auto" 삭제 -> 화면 높이 안 넘치면 스크롤 안 생김
                     expand=True
                     )
                 )
@@ -288,4 +319,4 @@ def main(page: ft.Page):
 
     page.add(ft.Column([ft.Container(height=80), logo, ft.Container(height=20), username_input, password_input, ft.Container(height=10), login_error_text, login_btn, signup_btn], alignment=ft.MainAxisAlignment.START, horizontal_alignment=ft.CrossAxisAlignment.CENTER))
 
-ft.app(target=main)
+ft.app(main)

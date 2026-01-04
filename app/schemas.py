@@ -27,7 +27,7 @@ class ExerciseResponse(ExerciseBase):
     class Config:
         orm_mode = True
 
-# ★ [수정됨] 퀘스트 완료 요청 (누가, 어떤 난이도를 깼는지)
+# ★ [확인] 여기가 quest_id가 아니라 difficulty여야 합니다!
 class QuestComplete(BaseModel):
     username: str
     difficulty: str
