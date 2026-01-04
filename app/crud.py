@@ -25,15 +25,13 @@ def create_user(db: Session, user: schemas.UserCreate):
 def verify_password(plain_password, hashed_password):
     return pwd_context.verify(plain_password, hashed_password)
 
-# --- ★ [추가됨] 퀘스트(운동) 관련 기능 ---
+# --- 퀘스트(운동) 관련 ---
 
-# 1. 운동 데이터가 없으면 자동으로 5개 채워넣기 (초기화)
+# 1. 운동 데이터 채워넣기 (초기화)
 def initialize_exercises(db: Session):
-    # 이미 데이터가 있으면 패스
     if db.query(models.Exercise).first():
         return None
     
-    # 기본 운동 리스트
     sample_exercises = [
         models.Exercise(name="스쿼트", count="15회", difficulty="하"),
         models.Exercise(name="스쿼트", count="30회", difficulty="중"),
@@ -55,12 +53,18 @@ def initialize_exercises(db: Session):
     
     db.add_all(sample_exercises)
     db.commit()
-    return "운동 데이터 생성 완료!"
+    print("✅ 운동 데이터 생성 완료!") # 로그 확인용
 
-# 2. 랜덤으로 퀘스트 3개 뽑아주기
+# 2. 랜덤 퀘스트 뽑기 (★수정된 부분)
 def get_random_quests(db: Session, limit: int = 3):
     exercises = db.query(models.Exercise).all()
-    # 데이터가 3개보다 적으면 있는 거 다 주고, 많으면 랜덤 3개 뽑기
+    
+    # ★ [핵심] 만약 조회했는데 데이터가 하나도 없다?
+    if not exercises:
+        print("⚠️ 데이터가 없어서 새로 만듭니다.")
+        initialize_exercises(db) # 바로 데이터를 채워넣음
+        exercises = db.query(models.Exercise).all() # 다시 조회
+        
     if len(exercises) < limit:
         return exercises
     return random.sample(exercises, limit)
