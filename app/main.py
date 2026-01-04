@@ -45,13 +45,17 @@ def signup(user: schemas.UserCreate, db: Session = Depends(get_db)):
     # 없으면 저장
     return crud.create_user(db=db, user=user)
 
-# 1. 관리자용: 기초 운동 데이터 생성 API
+# 1. 관리자용: 기초 운동 데이터 생성 API (안전 장치 추가됨)
 @app.post("/exercises/init")
 def init_data(db: Session = Depends(get_db)):
-    result = crud.initialize_exercises(db)
-    if result:
-        return {"message": result}
-    return {"message": "이미 데이터가 있습니다."}
+    try:
+        result = crud.initialize_exercises(db)
+        if result:
+            return {"message": result}
+        return {"message": "이미 데이터가 있습니다."}
+    except Exception as e:
+        # 에러가 나도 500으로 죽지 말고, 원인을 알려줘라!
+        return {"message": f"🛑 서버 에러 발생: {str(e)}"}
 
 # 2. 헬린이용: 오늘의 운동 퀘스트 받기 API
 @app.get("/quests", response_model=List[schemas.ExerciseResponse])

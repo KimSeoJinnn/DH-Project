@@ -10,11 +10,11 @@ class User(Base):
     level = Column(Integer, default=1)
     exp = Column(Integer, default=0)
 
-# ★ [추가됨] 운동 퀘스트 종류를 저장할 테이블
+# ★ [중요] 이 부분이 빠져있거나 오타가 있으면 500 에러가 납니다!
 class Exercise(Base):
     __tablename__ = "exercises"
 
     id = Column(Integer, primary_key=True, index=True)
-    name = Column(String)       # 운동 이름 (예: 스쿼트)
-    count = Column(String)      # 목표 횟수 (예: 20회)
-    difficulty = Column(String) # 난이도 (예: 상/중/하)
+    name = Column(String)       # 운동 이름
+    count = Column(String)      # 목표 횟수
+    difficulty = Column(String) # 난이도
