@@ -6,10 +6,21 @@ from typing import List # 리스트 형태를 쓰기 위해 필요
 from pydantic import BaseModel
 import random
 
-# DB 테이블 생성 (sql_app.db 파일이 없으면 자동 생성)
+# 1. DB 테이블 생성 (sql_app.db 파일이 없으면 자동 생성)
 models.Base.metadata.create_all(bind=database.engine)
 
+# 2. ★ [추가] 서버 시작할 때 운동 데이터 자동 생성 (딱 한 번 실행됨)
+try:
+    db = database.SessionLocal()
+    # 운동 데이터가 비어있으면 채워넣기
+    crud.initialize_exercises(db)
+    db.close()
+    print("✅ 운동 데이터 초기화 완료")
+except Exception as e:
+    print(f"⚠️ 초기화 중 오류: {e}")
+
 app = FastAPI()
+
 
 # DB 세션 가져오기
 def get_db():
