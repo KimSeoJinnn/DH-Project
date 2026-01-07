@@ -374,8 +374,6 @@ def main(page: ft.Page):
                         ft.Container(height=15),
                         quest_list_view, 
                         ft.Container(height=10),
-                        ft.FilledButton("오늘 운동 기록하기 📝", width=300, height=60, style=ft.ButtonStyle(bgcolor="blue", color="white"), on_click=open_record_modal),
-                        ft.Container(height=10), 
                         ft.FilledButton("전체 랭킹 확인하기 🏆", width=300, height=60, style=ft.ButtonStyle(bgcolor="green", color="white"), on_click=show_ranking),
                         ft.Container(height=30),
                     ], 

@@ -1,6 +1,7 @@
 from sqlalchemy.orm import Session
 from . import models, schemas
 from passlib.context import CryptContext
+from datetime import datetime
 import random
 
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
@@ -21,37 +22,64 @@ def verify_password(plain_password, hashed_password):
     return pwd_context.verify(plain_password, hashed_password)
 
 # --- 퀘스트 관련 ---
-def initialize_exercises(db: Session):
-    if db.query(models.Exercise).first(): return None
-    sample_exercises = [
-        models.Exercise(name="스쿼트", count="15회", difficulty="하"),
-        models.Exercise(name="스쿼트", count="30회", difficulty="중"),
-        models.Exercise(name="스쿼트", count="45회", difficulty="상"),
-        models.Exercise(name="싯업", count="15회", difficulty="하"),
-        models.Exercise(name="싯업", count="30회", difficulty="중"),
-        models.Exercise(name="싯업", count="45회", difficulty="상"),
-        models.Exercise(name="푸쉬업", count="5회", difficulty="하"),
-        models.Exercise(name="푸쉬업", count="15회", difficulty="중"),
-        models.Exercise(name="푸쉬업", count="30회", difficulty="상"),
-        models.Exercise(name="푸쉬업", count="45회", difficulty="최상"),
-        models.Exercise(name="플랭크", count="30초", difficulty="중"),
-        models.Exercise(name="플랭크", count="1분", difficulty="상"),
-        models.Exercise(name="런지", count="15회(양발)", difficulty="상"),
-        models.Exercise(name="런지", count="30회(양발)", difficulty="최상"),
-        models.Exercise(name="버피테스트", count="10회", difficulty="상"),
-        models.Exercise(name="버피테스트", count="20회", difficulty="최상"),
-    ]
-    db.add_all(sample_exercises)
-    db.commit()
-    return "운동 데이터 생성 완료!"
+# def initialize_exercises(db: Session):
+#     if db.query(models.Exercise).first(): return None
+#     sample_exercises = [
+#         models.Exercise(name="스쿼트", count="15회", difficulty="하"),
+#         models.Exercise(name="스쿼트", count="30회", difficulty="중"),
+#         models.Exercise(name="스쿼트", count="45회", difficulty="상"),
+#         models.Exercise(name="싯업", count="15회", difficulty="하"),
+#         models.Exercise(name="싯업", count="30회", difficulty="중"),
+#         models.Exercise(name="싯업", count="45회", difficulty="상"),
+#         models.Exercise(name="푸쉬업", count="5회", difficulty="하"),
+#         models.Exercise(name="푸쉬업", count="15회", difficulty="중"),
+#         models.Exercise(name="푸쉬업", count="30회", difficulty="상"),
+#         models.Exercise(name="푸쉬업", count="45회", difficulty="최상"),
+#         models.Exercise(name="플랭크", count="30초", difficulty="중"),
+#         models.Exercise(name="플랭크", count="1분", difficulty="상"),
+#         models.Exercise(name="런지", count="15회(양발)", difficulty="상"),
+#         models.Exercise(name="런지", count="30회(양발)", difficulty="최상"),
+#         models.Exercise(name="버피테스트", count="10회", difficulty="상"),
+#         models.Exercise(name="버피테스트", count="20회", difficulty="최상"),
+#     ]
+#     db.add_all(sample_exercises)
+#     db.commit()
+#     return "운동 데이터 생성 완료!"
 
-def get_random_quests(db: Session, limit: int = 3):
-    exercises = db.query(models.Exercise).all()
-    if not exercises:
-        initialize_exercises(db)
-        exercises = db.query(models.Exercise).all()
-    if len(exercises) < limit: return exercises
-    return random.sample(exercises, limit)
+# [NEW] 요일별 고정 루틴 반환 함수
+def get_today_routine():
+    # 0:월, 1:화, 2:수, 3:목, 4:금, 5:토, 6:일
+    weekday = datetime.today().weekday()
+    
+    # 기본 휴식 루틴 (월, 수, 금, 일)
+    routine_type = "휴식 & 스트레칭 🧘"
+    exercises = [
+        {"name": "가벼운 스트레칭", "count": "10분", "difficulty": "하"},
+        {"name": "물 마시기", "count": "1리터", "difficulty": "하"},
+        {"name": "충분한 수면", "count": "7시간", "difficulty": "하"}
+    ]
+
+    # 화요일 (1), 목요일 (3) - 무분할 전신
+    if weekday in [1, 3]:
+        routine_type = "무분할 전신 💪"
+        exercises = [
+            {"name": "스쿼트", "count": "15회 x 3세트", "difficulty": "중"},
+            {"name": "푸쉬업", "count": "12회 x 3세트", "difficulty": "중"},
+            {"name": "렛풀다운(또는 턱걸이)", "count": "12회 x 3세트", "difficulty": "중"},
+            {"name": "플랭크", "count": "40초 x 2세트", "difficulty": "중"}
+        ]
+    
+    # 토요일 (5) - 불타는 고강도
+    elif weekday == 5:
+        routine_type = "🔥 불토 고강도 하체"
+        exercises = [
+            {"name": "스쿼트", "count": "20회 x 4세트", "difficulty": "상"},
+            {"name": "런지", "count": "15회(양발) x 3세트", "difficulty": "상"},
+            {"name": "버피테스트", "count": "15회 x 3세트", "difficulty": "상"},
+            {"name": "레그레이즈", "count": "20회 x 3세트", "difficulty": "중"}
+        ]
+
+    return exercises
 
 # ★ [확인] request.difficulty를 쓰는지 확인하세요!
 def complete_quest(db: Session, request: schemas.QuestComplete):

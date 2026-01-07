@@ -24,28 +24,28 @@
         }
     ],
     "f": {
-        "last_active_date": "2026-01-04",
+        "last_active_date": "2026-01-05",
         "daily_quests": [
             {
-                "name": "런지",
-                "count": "15회(양발)",
-                "difficulty": "상",
-                "id": 13,
-                "completed": true
-            },
-            {
                 "name": "푸쉬업",
-                "count": "30회",
-                "difficulty": "상",
-                "id": 9,
-                "completed": true
+                "count": "15회",
+                "difficulty": "중",
+                "id": 8,
+                "completed": false
             },
             {
                 "name": "버피테스트",
-                "count": "20회",
-                "difficulty": "최상",
-                "id": 16,
+                "count": "10회",
+                "difficulty": "상",
+                "id": 15,
                 "completed": true
+            },
+            {
+                "name": "싯업",
+                "count": "45회",
+                "difficulty": "상",
+                "id": 6,
+                "completed": false
             }
         ]
     },
@@ -76,13 +76,13 @@
         ]
     },
     "d": {
-        "last_active_date": "2026-01-04",
+        "last_active_date": "2026-01-05",
         "daily_quests": [
             {
                 "name": "푸쉬업",
-                "count": "30회",
-                "difficulty": "상",
-                "id": 9,
+                "count": "45회",
+                "difficulty": "최상",
+                "id": 10,
                 "completed": true
             },
             {
@@ -93,10 +93,10 @@
                 "completed": true
             },
             {
-                "name": "스쿼트",
+                "name": "싯업",
                 "count": "45회",
                 "difficulty": "상",
-                "id": 3,
+                "id": 6,
                 "completed": true
             }
         ]

@@ -38,12 +38,10 @@ def init_data(db: Session = Depends(get_db)):
         return {"message": "이미 데이터가 있습니다."}
     except Exception as e: return {"message": f"에러: {str(e)}"}
 
-@app.get("/quests", response_model=List[schemas.ExerciseResponse])
-def get_today_quests(db: Session = Depends(get_db)):
-    try: return crud.get_random_quests(db, limit=3)
-    except: 
-        models.Base.metadata.create_all(bind=database.engine)
-        return crud.get_random_quests(db, limit=3)
+@app.get("/quests")
+def get_today_quests():
+    # DB 의존성 없이 바로 로직 호출
+    return crud.get_today_routine()
 
 # ★ [확인] 이 부분이 있어야 합니다.
 @app.post("/quests/complete")
