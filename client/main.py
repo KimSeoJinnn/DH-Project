@@ -26,22 +26,20 @@ def main(page: ft.Page):
     quest_list_view = ft.Column(spacing=10, scroll="auto", height=280)
 
     # -------------------------------------------------
-    # 🔔 [수정] 메시지 띄우기 (모든 버전 호환)
+    # 메시지 띄우기 함수
     # -------------------------------------------------
     def show_message(msg, color="green"):
-        # 1. 스낵바 생성
         snack = ft.SnackBar(
             content=ft.Text(msg, color="white", weight="bold"),
             bgcolor=color,
             duration=2000
         )
-        # 2. 페이지 속성에 할당하고 open=True 설정
         page.snack_bar = snack
         snack.open = True
         page.update()
 
     # -------------------------------------------------
-    # 📜 퀘스트 불러오기 (팝업창 오류 수정됨)
+    # 퀘스트 불러오기 & 퀘스트 클릭 이벤트
     # -------------------------------------------------
     def load_quests(e=None):
         quest_list_view.controls.clear()
@@ -53,6 +51,7 @@ def main(page: ft.Page):
         current_quests = []
         all_data = {} 
 
+        # 1. 로컬 파일 읽기
         if os.path.exists(DATA_FILE):
             try:
                 with open(DATA_FILE, "r", encoding="utf-8") as f:
@@ -64,19 +63,23 @@ def main(page: ft.Page):
         last_date = user_data.get("last_active_date")
         stored_quests = user_data.get("daily_quests")
 
+        # 2. 오늘 저장된 퀘스트가 있으면 그거 사용 (서버 부하 줄임)
         if last_date == today_date and stored_quests:
-            print(f"💾 {current_username}님의 퀘스트 로드")
+            print(f"💾 {current_username}님의 퀘스트 로드 (캐시)")
             current_quests = stored_quests
         else:
-            print(f"🌐 {current_username}님의 새 퀘스트 요청")
+            # 3. 없으면 서버에서 새로 받아오기
+            print(f"🌐 {current_username}님의 새 퀘스트 요청 (서버)")
             try:
                 res = requests.get(f"{SERVER_URL}/quests")
                 if res.status_code == 200:
                     fetched_quests = res.json()
+                    # 초기화
                     for q in fetched_quests:
                         q['completed'] = False 
                     current_quests = fetched_quests
                     
+                    # 파일에 저장
                     all_data[current_username] = {
                         "last_active_date": today_date,
                         "daily_quests": current_quests
@@ -93,6 +96,7 @@ def main(page: ft.Page):
                 page.update()
                 return
 
+        # 4. 화면에 퀘스트 카드 그리기
         if len(current_quests) == 0:
             quest_list_view.controls.append(ft.Text("퀘스트가 없습니다.", color="grey"))
         else:
@@ -101,40 +105,38 @@ def main(page: ft.Page):
                 icon_str = "✅" if is_done else "⬜"
                 check_icon = ft.Text(icon_str, size=24)
                 
+                # --- 카드 클릭 이벤트 (내부 함수) ---
                 def on_card_click(e, index=i, quest_data=q, icon_widget=check_icon):
                     nonlocal current_level
 
-                    if icon_widget.value == "✅": return
+                    if icon_widget.value == "✅": return # 이미 완료했으면 패스
 
                     try:
                         req_data = {
                             "username": current_username, 
                             "difficulty": quest_data['difficulty']
                         }
-                        # ⭐ 이전 레벨 저장
                         prev_level = current_level
 
                         res = requests.post(f"{SERVER_URL}/quests/complete", json=req_data)
 
                         if res.status_code == 200:
                             result = res.json()
-
                             icon_widget.value = "✅"
 
                             new_level = result['new_level']
                             current_xp = result['current_xp']
+                            new_title = result.get('title', '알 수 없음') 
 
                             current_level = new_level
 
-                            level_text.value = f"레벨 : Lv{new_level}"
+                            # ★ [화면 갱신] 레벨과 칭호, 경험치바 업데이트
+                            level_text.value = f"Lv.{new_level} {new_title}"
                             xp_text.value = f"경험치: {current_xp} / 100 XP"
                             xp_bar.value = current_xp / 100
 
-                            new_title = result.get('title', '') # 👈 칭호 받기
-
-                            # ✅ 문자열 말고 레벨 증가로 판별
+                            # 레벨업 체크
                             if new_level > prev_level:
-
                                 def close_levelup(e):
                                     levelup_dlg.open = False
                                     page.update()
@@ -146,19 +148,15 @@ def main(page: ft.Page):
                                         ft.Text(f"Lv.{new_level} 로 성장했습니다!", size=16),
                                         ft.Text(f"이제 당신은 [{new_title}] 입니다!", size=18, color="green", weight="bold"),
                                         ft.Text(f"현재 경험치: {current_xp}/100", size=12, color="grey"),
-                                    ], height=100, tight=True),
+                                    ], height=120, tight=True),
                                     actions=[ft.FilledButton("확인", on_click=close_levelup)],
                                 )
-                                level_text.value = f"Lv.{new_level} {new_title}"
                                 page.overlay.append(levelup_dlg)
                                 levelup_dlg.open = True
-                                page.update()
-
-
                             else:
                                 show_message(f"💪 {result.get('message', '퀘스트 완료!')}", "green")
 
-                            # 데이터 저장
+                            # 로컬 파일 업데이트 (완료 상태 저장)
                             if os.path.exists(DATA_FILE):
                                 with open(DATA_FILE, "r", encoding="utf-8") as f:
                                     current_all_data = json.load(f)
@@ -173,9 +171,10 @@ def main(page: ft.Page):
                             show_message(f"오류: {res.status_code}", "red")
 
                     except Exception as err:
-                        print(f"에러: {err}") # 터미널에서 에러 확인용
+                        print(f"에러: {err}")
                         show_message("연결 실패", "red")
 
+                # UI 카드 생성
                 card = ft.Container(
                     content=ft.Row([
                         ft.Column([
@@ -195,63 +194,52 @@ def main(page: ft.Page):
         page.update()
 
     # -------------------------------------------------
-    # 👶 회원가입 팝업
+    # 회원가입 팝업
     # -------------------------------------------------
     def show_signup_modal(e):
         signup_error_text = ft.Text("", color="red", size=12)
         new_id = ft.TextField(label="사용할 아이디", autofocus=True)
-        new_pw = ft.TextField(label="사용할 비밀번호", password=True, can_reveal_password=True)
+        new_pw = ft.TextField(label="사용할 비밀번호", password=True)
 
         def close_signup(e):
             signup_dlg.open = False
             page.update()
 
-        def try_signup_enter(e):
-            try_signup(e)
-
         def try_signup(e):
-            signup_error_text.value = ""
-            page.update()
-
             if not new_id.value or not new_pw.value:
                 signup_error_text.value = "아이디와 비밀번호를 입력해주세요."
                 page.update()
                 return
             
-            signup_data = {"username": new_id.value, "password": new_pw.value, "level": 1, "exp": 0}
             try:
-                res = requests.post(f"{SERVER_URL}/users/signup", json=signup_data)
+                res = requests.post(f"{SERVER_URL}/users/signup", json={"username": new_id.value, "password": new_pw.value})
                 if res.status_code == 200:
                     signup_dlg.open = False
                     username_input.value = new_id.value 
-                    password_input.value = ""
                     login_error_text.value = "✅ 가입 성공! 로그인 해주세요."
                     login_error_text.color = "green"
                     page.update()
                 elif res.status_code == 400:
-                    try: msg = res.json().get('detail', '이미 존재하는 아이디입니다.')
-                    except: msg = "이미 존재하는 아이디입니다."
-                    signup_error_text.value = f"❌ {msg}"
+                    signup_error_text.value = "이미 존재하는 아이디입니다."
                     page.update()
                 else:
-                    signup_error_text.value = "❌ 서버 오류"
+                    signup_error_text.value = "서버 오류"
                     page.update()
-            except Exception as err:
-                signup_error_text.value = "❌ 연결 실패"
+            except:
+                signup_error_text.value = "연결 실패"
                 page.update()
 
-        new_pw.on_submit = try_signup_enter
         signup_dlg = ft.AlertDialog(
             title=ft.Text("회원가입 👶"),
-            content=ft.Column([ft.Text("아이디 만들기"), new_id, new_pw, signup_error_text], height=220, tight=True),
-            actions=[ft.TextButton("취소", on_click=close_signup), ft.FilledButton("가입하기", on_click=try_signup, style=ft.ButtonStyle(bgcolor="green", color="white"))],
+            content=ft.Column([new_id, new_pw, signup_error_text], height=200, tight=True),
+            actions=[ft.TextButton("취소", on_click=close_signup), ft.FilledButton("가입하기", on_click=try_signup)]
         )
         page.overlay.append(signup_dlg)
         signup_dlg.open = True
         page.update()
 
     # -------------------------------------------------
-    # 🏆 랭킹 & 운동 기록
+    # 랭킹 팝업
     # -------------------------------------------------
     def show_ranking(e):
         try:
@@ -263,69 +251,42 @@ def main(page: ft.Page):
                     rank = idx + 1
                     medal = "🥇" if rank == 1 else "🥈" if rank == 2 else "🥉" if rank == 3 else f"{rank}위"
                     is_me = (user['username'] == current_username)
-                    bg_color = "blue" if is_me else "white10" 
-                    rank_ui_items.append(ft.Container(content=ft.Row([ft.Text(f"{medal}"), ft.Text(f"{user['username']}"), ft.Text(f"Lv.{user['level']}")], alignment=ft.MainAxisAlignment.SPACE_BETWEEN), padding=10, bgcolor=bg_color, border_radius=10))
+                    bg = "blue" if is_me else "white10"
+                    
+                    rank_ui_items.append(
+                        ft.Container(
+                            content=ft.Row([
+                                ft.Text(f"{medal} {user['username']}"), 
+                                ft.Text(f"Lv.{user['level']}")
+                            ], alignment=ft.MainAxisAlignment.SPACE_BETWEEN),
+                            padding=10, 
+                            bgcolor=bg, 
+                            border_radius=10
+                        )
+                    )
                 
-                def close_rank_overlay(e):
+                def close_rank(e):
                     rank_dlg.open = False
                     page.update()
 
                 rank_dlg = ft.AlertDialog(
-                    title=ft.Text("랭킹"), 
+                    title=ft.Text("랭킹 TOP 10"), 
                     content=ft.Column(rank_ui_items, height=300, scroll="auto"), 
-                    actions=[ft.TextButton("닫기", on_click=close_rank_overlay)]
+                    actions=[ft.TextButton("닫기", on_click=close_rank)]
                 )
                 page.overlay.append(rank_dlg)
                 rank_dlg.open = True
                 page.update()
         except: pass
 
-    def open_record_modal(e):
-        nonlocal current_level
-        def save_workout_enter(e):
-            save_workout(e)
-        exercise_input = ft.TextField(label="종목", autofocus=True)
-        count_input = ft.TextField(label="횟수", on_submit=save_workout_enter)
-        def close_dlg(e):
-            dlg.open = False
-            page.update()
-        def save_workout(e):
-            if not exercise_input.value or not count_input.value: return 
-            if current_username == "": return
-            workout_data = {"username": current_username, "exercise": exercise_input.value, "count": count_input.value}
-            try:
-                res = requests.post(f"{SERVER_URL}/users/workout", json=workout_data)
-                if res.status_code == 200:
-                    result = res.json()
-                    new_level = result.get('new_level', 1)
-                    current_xp = result.get('current_xp', 0)
-                    message = result.get('message', '기록 완료!')
-                    
-                    level_text.value = f"레벨 : Lv{new_level}"
-                    xp_text.value = f"경험치: {current_xp} / 100 XP"
-                    xp_bar.value = current_xp / 100
-                    
-                    dlg.title.value = "✅ 기록 성공!"
-                    dlg.content.controls.clear()
-                    dlg.content.controls.append(ft.Column([ft.Text(message), ft.Container(height=10), ft.ProgressBar(value=current_xp/100, color="orange"), ft.Text(f"Lv.{new_level} (XP: {current_xp}/100)")] ) )
-                    dlg.actions.clear()
-                    dlg.actions.append(ft.FilledButton("확인", on_click=close_dlg, autofocus=True))
-                    page.update()
-                else: print(f"실패: {res.text}")
-            except Exception as err: print(f"에러: {err}")
-        dlg = ft.AlertDialog(title=ft.Text("기록"), content=ft.Column([exercise_input, count_input], height=150, tight=True), actions=[ft.TextButton("취소", on_click=close_dlg), ft.FilledButton("완료", on_click=save_workout)])
-        page.overlay.append(dlg)
-        dlg.open = True
-        page.update()
-
     # -------------------------------------------------
-    # 🚦 로그인 함수 (수정 완료: 레벨 변수 동기화)
+    # 로그인 함수 (메인 로직)
     # -------------------------------------------------
     login_error_text = ft.Text("", color="red")  
     
     def login_click(e):
         global current_username
-        nonlocal current_level  # 👈 [핵심] 이 줄이 추가되었습니다!
+        nonlocal current_level
         
         login_error_text.value = ""
         page.update()
@@ -343,22 +304,18 @@ def main(page: ft.Page):
                 current_username = result['username']
                 user_level = result['level']
                 user_xp = result.get('exp', 0)
-
-                current_level = user_level  # 👈 이제 바깥쪽 변수가 진짜로 바뀝니다.
+                current_level = user_level
                 
-                user_title = result.get('title', '알 수 없음') # 👈 칭호 받아오기
-
-                # [수정] 화면 갱신 부분
-                level_text.value = f"Lv.{user_level} {user_title}" # 👈 텍스트에 칭호 포함!
-
-                # 화면 초기화
-                page.clean()
+                # ★ [수정] 칭호 받기
+                user_title = result.get('title', '초보자') 
                 
-                # 상단 정보 업데이트
-                level_text.value = f"레벨 : Lv{user_level}"
+                # ★ [수정] 레벨 텍스트에 칭호 적용
+                level_text.value = f"Lv.{user_level} {user_title}"
                 xp_text.value = f"경험치: {user_xp} / 100 XP"
                 xp_bar.value = user_xp / 100
                 
+                # 화면 전환 (대시보드)
+                page.clean()
                 page.add(
                     ft.Column([
                         ft.Container(height=20),
@@ -392,18 +349,16 @@ def main(page: ft.Page):
                     )
                 )
                 page.update()
-
+                
+                # 퀘스트 로드 시도
                 try:
                     load_quests() 
                 except Exception as e:
-                    print(f"퀘스트 로딩 에러: {e}")
-                    quest_list_view.controls.append(ft.Text(f"퀘스트 로딩 실패: {e}", color="red"))
+                    quest_list_view.controls.append(ft.Text(f"로딩 실패: {e}", color="red"))
                     page.update()
 
             elif res.status_code == 400:
-                try: error_msg = res.json().get('detail', '로그인 실패')
-                except: error_msg = "아이디/비번 확인"
-                login_error_text.value = f"⚠️ {error_msg}"
+                login_error_text.value = f"⚠️ 아이디/비밀번호를 확인하세요."
                 page.update()
             else:
                 login_error_text.value = "❌ 서버 오류"
@@ -414,14 +369,30 @@ def main(page: ft.Page):
             page.update()
 
     # -------------------------------------------------
-    # 🏁 초기 화면
+    # 초기 화면 (로그인 창)
     # -------------------------------------------------
     logo = ft.Text("🏋️", size=70)
-    username_input = ft.TextField(label="아이디", width=300, autofocus=True)
+    username_input = ft.TextField(label="아이디", width=300)
     password_input = ft.TextField(label="비밀번호", width=300, password=True, on_submit=login_click)
     login_btn = ft.FilledButton("로그인", width=300, height=50, on_click=login_click)
     signup_btn = ft.TextButton("회원가입", on_click=show_signup_modal)
 
-    page.add(ft.Column([ft.Container(height=80), logo, ft.Container(height=20), username_input, password_input, ft.Container(height=10), login_error_text, login_btn, signup_btn], alignment=ft.MainAxisAlignment.START, horizontal_alignment=ft.CrossAxisAlignment.CENTER))
+    page.add(
+        ft.Column(
+            [
+                ft.Container(height=80), 
+                logo, 
+                ft.Container(height=20), 
+                username_input, 
+                password_input, 
+                ft.Container(height=10), 
+                login_error_text, 
+                login_btn, 
+                signup_btn
+            ], 
+            alignment=ft.MainAxisAlignment.START, 
+            horizontal_alignment=ft.CrossAxisAlignment.CENTER
+        )
+    )
 
 ft.app(target=main)
