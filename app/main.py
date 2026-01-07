@@ -27,7 +27,13 @@ def login(user: schemas.UserLogin, db: Session = Depends(get_db)):
     db_user = crud.get_user_by_username(db, username=user.username)
     if not db_user or not crud.verify_password(user.password, db_user.hashed_password):
         raise HTTPException(status_code=400, detail="아이디 또는 비밀번호가 틀렸습니다.")
-    return {"message": "로그인 성공!", "username": db_user.username, "level": db_user.level, "exp": db_user.exp}
+    return {
+        "message": "로그인 성공!", 
+        "username": db_user.username, 
+        "level": db_user.level, 
+        "exp": db_user.exp,
+        "title": crud.get_user_title(db_user.level) # 👈 여기 추가!
+    }
 
 @app.post("/exercises/init")
 def init_data(db: Session = Depends(get_db)):

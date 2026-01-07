@@ -107,4 +107,25 @@ def complete_quest(db: Session, request: schemas.QuestComplete):
     db.commit()
     db.refresh(user)
 
-    return {"message": message, "new_level": user.level, "current_xp": user.exp, "gained_xp": gain_xp}
+    return {
+        "message": message, 
+        "new_level": user.level, 
+        "current_xp": user.exp, 
+        "gained_xp": gain_xp,
+        "title": get_user_title(user.level) # 👈 새로 추가된 부분!
+    }
+
+
+def get_user_title(level: int):
+    if level <= 5:
+        return "🦴 흔들리는 갈대 (초보)"
+    elif level <= 10:
+        return "🐥 헬스장 병아리 (입문)"
+    elif level <= 20:
+        return "🏃‍♂️ 성실한 헬린이 (중수)"
+    elif level <= 30:
+        return "💪 근육이 꿈틀꿈틀 (고수)"
+    elif level <= 50:
+        return "🏋️‍♂️ 헬스장 고인물 (초고수)"
+    else:
+        return "👑 근육의 신 (마스터)"

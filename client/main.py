@@ -10,6 +10,7 @@ current_username = ""
 def main(page: ft.Page):
     global current_username
     current_level = 1
+    current_title = "입문자"
     
     page.title = "헬린이 키우기"
     page.window.width = 400
@@ -18,7 +19,7 @@ def main(page: ft.Page):
     page.bgcolor = "black"
     page.horizontal_alignment = ft.CrossAxisAlignment.CENTER
 
-    level_text = ft.Text(size=24, color="yellow", weight="bold")
+    level_text = ft.Text(value="Lv. 1 입문자", size=20, color="yellow", weight="bold")
     xp_text = ft.Text(size=12, color="white")
     xp_bar = ft.ProgressBar(width=200, color="orange", bgcolor="grey", value=0)
     
@@ -129,6 +130,8 @@ def main(page: ft.Page):
                             xp_text.value = f"경험치: {current_xp} / 100 XP"
                             xp_bar.value = current_xp / 100
 
+                            new_title = result.get('title', '') # 👈 칭호 받기
+
                             # ✅ 문자열 말고 레벨 증가로 판별
                             if new_level > prev_level:
 
@@ -141,11 +144,12 @@ def main(page: ft.Page):
                                     content=ft.Column([
                                         ft.Text(f"축하합니다! {current_username}님!", size=16),
                                         ft.Text(f"Lv.{new_level} 로 성장했습니다!", size=16),
+                                        ft.Text(f"이제 당신은 [{new_title}] 입니다!", size=18, color="green", weight="bold"),
                                         ft.Text(f"현재 경험치: {current_xp}/100", size=12, color="grey"),
                                     ], height=100, tight=True),
                                     actions=[ft.FilledButton("확인", on_click=close_levelup)],
                                 )
-
+                                level_text.value = f"Lv.{new_level} {new_title}"
                                 page.overlay.append(levelup_dlg)
                                 levelup_dlg.open = True
                                 page.update()
@@ -342,6 +346,11 @@ def main(page: ft.Page):
 
                 current_level = user_level  # 👈 이제 바깥쪽 변수가 진짜로 바뀝니다.
                 
+                user_title = result.get('title', '알 수 없음') # 👈 칭호 받아오기
+
+                # [수정] 화면 갱신 부분
+                level_text.value = f"Lv.{user_level} {user_title}" # 👈 텍스트에 칭호 포함!
+
                 # 화면 초기화
                 page.clean()
                 
