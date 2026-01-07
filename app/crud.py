@@ -1,7 +1,7 @@
 from sqlalchemy.orm import Session
 from . import models, schemas
 from passlib.context import CryptContext
-from datetime import datetime
+from datetime import datetime, timedelta
 import random
 
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
@@ -48,9 +48,16 @@ def verify_password(plain_password, hashed_password):
 
 # [NEW] 요일별 고정 루틴 반환 함수
 def get_today_routine():
-    # 0:월, 1:화, 2:수, 3:목, 4:금, 5:토, 6:일
-    weekday = datetime.today().weekday()
+    # 👈 [2] 서버 시간(UTC)에 9시간을 더해 한국 시간으로 변환
+    utc_now = datetime.utcnow()
+    kst_now = utc_now + timedelta(hours=9)
     
+    # 한국 시간 기준으로 요일 확인 (0:월 ~ 6:일)
+    weekday = kst_now.weekday()
+    
+    # 디버깅용 로그 (서버 로그에서 확인 가능)
+    print(f"Current KST Time: {kst_now}, Weekday: {weekday}")
+
     # 기본 휴식 루틴 (월, 수, 금, 일)
     routine_type = "휴식 & 스트레칭 🧘"
     exercises = [

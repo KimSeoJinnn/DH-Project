@@ -24,28 +24,25 @@
         }
     ],
     "f": {
-        "last_active_date": "2026-01-05",
+        "last_active_date": "2026-01-08",
         "daily_quests": [
             {
-                "name": "푸쉬업",
-                "count": "15회",
-                "difficulty": "중",
-                "id": 8,
+                "name": "가벼운 스트레칭",
+                "count": "10분",
+                "difficulty": "하",
                 "completed": false
             },
             {
-                "name": "버피테스트",
-                "count": "10회",
-                "difficulty": "상",
-                "id": 15,
+                "name": "물 마시기",
+                "count": "1리터",
+                "difficulty": "하",
+                "completed": false
+            },
+            {
+                "name": "충분한 수면",
+                "count": "7시간",
+                "difficulty": "하",
                 "completed": true
-            },
-            {
-                "name": "싯업",
-                "count": "45회",
-                "difficulty": "상",
-                "id": 6,
-                "completed": false
             }
         ]
     },
