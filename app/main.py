@@ -60,7 +60,7 @@ def complete_quest_api(request: schemas.QuestComplete, db: Session = Depends(get
 def record_workout(request: schemas.WorkoutRequest, db: Session = Depends(get_db)):
     user = db.query(models.User).filter(models.User.username == request.username).first()
     if not user: raise HTTPException(status_code=404, detail="유저 없음")
-    gain_xp = 10
+    gain_xp = request.amount
     user.exp += gain_xp
     msg = f"기록 완료! (+{gain_xp} XP)"
     if user.exp >= 100:
@@ -68,7 +68,7 @@ def record_workout(request: schemas.WorkoutRequest, db: Session = Depends(get_db
         user.exp -= 100
         msg = f"🎉 레벨업! (Lv.{user.level})"
     db.commit()
-    return {"message": msg, "new_level": user.level, "current_xp": user.exp}
+    return {"message": msg, "new_level": user.level, "current_xp": user.exp, "title": crud.get_user_title(user.level)}
 
 @app.get("/users/ranking")
 def get_ranking(db: Session = Depends(get_db)):

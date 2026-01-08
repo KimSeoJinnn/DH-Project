@@ -34,5 +34,6 @@ class QuestComplete(BaseModel):
 
 class WorkoutRequest(BaseModel):
     username: str
-    exercise: str
-    count: str
+    exercise: str = "Debug"
+    count: str = "1"
+    amount: int = 10
