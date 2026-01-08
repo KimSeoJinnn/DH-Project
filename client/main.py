@@ -357,6 +357,114 @@ def main(page: ft.Page):
         except: pass
 
     # -------------------------------------------------
+    # [NEW] AI 식단 분석 팝업 (강력한 디버깅 모드)
+    # -------------------------------------------------
+    def show_diet_modal(e):
+        print("🚩 [START] 팝업창 열림") 
+
+        def close_modal(e):
+            diet_dlg.open = False
+            page.update()
+
+        # UI 요소
+        food_input = ft.TextField(label="음식 이름 (예: 마라탕)", autofocus=True)
+        result_text = ft.Text("음식을 입력하고 엔터를 누르세요.", size=14)
+        traffic_icon = ft.Icon("lens", size=70, color="grey")
+
+        # -----------------------------------------------
+        # 👇 여기가 핵심 분석 함수입니다
+        # -----------------------------------------------
+        def run_analysis(e):
+            print("\n----------------------------------------")
+            print("1️⃣ [클릭] 분석 버튼 눌림. 함수 시작.")
+            
+            if not food_input.value:
+                print("⚠️ [경고] 음식 이름 없음.")
+                return
+            
+            # 로딩 표시
+            result_text.value = "⏳ 통신 시도 중..."
+            traffic_icon.color = "grey"
+            page.update()
+            
+            try:
+                target_url = f"http://127.0.0.1:8000/analyze?food={food_input.value}"
+                print(f"2️⃣ [요청] 서버로 전송 시도 -> {target_url}")
+                
+                # 타임아웃 10초 설정
+                res = requests.get(target_url, timeout=10)
+                
+                print(f"3️⃣ [응답] 서버 응답 도착! 상태코드: {res.status_code}")
+                print(f"📄 [원본 데이터] {res.text}")  # ⭐ 서버가 보낸 진짜 내용 확인 ⭐
+
+                if res.status_code == 200:
+                    print("4️⃣ [파싱] JSON 데이터 변환 시도...")
+                    data = res.json()
+                    print(f"🔍 [변환 데이터] {data}")
+
+                    # 리스트 껍질 벗기기
+                    if isinstance(data, list):
+                        data = data[0] if len(data) > 0 else {}
+
+                    # 키값 확인
+                    if 'traffic_light' in data:
+                        print("5️⃣ [성공] 필요한 데이터가 다 있습니다.")
+                        
+                        color_map = {"Green": "green", "Yellow": "yellow", "Red": "red"}
+                        traffic_icon.color = color_map.get(data['traffic_light'], "grey")
+                        
+                        result_text.value = (
+                            f"🍎 {data.get('food_name', '음식')}\n"
+                            f"🚦 {data.get('traffic_light')}\n"
+                            f"🔥 {data.get('calories')}kcal\n"
+                            f"💪 단백질 {data.get('protein')}g\n"
+                            f"💡 {data.get('reason')}"
+                        )
+                    else:
+                        print("❌ [실패] traffic_light 키가 없습니다.")
+                        result_text.value = f"데이터 오류: {data}"
+                else:
+                    print(f"❌ [실패] 서버 에러 코드: {res.status_code}")
+                    result_text.value = f"서버 에러 ({res.status_code})"
+
+                print("6️⃣ [종료] 모든 로직 완료.")
+
+            except Exception as err:
+                print(f"💥 [에러 발생] {err}")
+                result_text.value = f"에러: {err}"
+            
+            page.update()
+            print("----------------------------------------\n")
+
+        food_input.on_submit = run_analysis
+
+        # 팝업창 UI
+        content_column = ft.Column(
+            controls=[
+                ft.Text("무엇을 드셨나요?", size=18, weight="bold"),
+                ft.Container(height=10),
+                food_input,
+                ft.FilledButton("분석하기", on_click=run_analysis, bgcolor="blue", color="white"),
+                ft.Divider(),
+                ft.Row([traffic_icon], alignment="center"),
+                ft.Container(height=10),
+                result_text
+            ],
+            height=400, width=300, scroll="auto", spacing=10
+        )
+
+        diet_dlg = ft.AlertDialog(
+            title=ft.Text("🥦 디버깅 모드"),
+            content=content_column,
+            actions=[ft.TextButton("닫기", on_click=close_modal)],
+            actions_alignment="end"
+        )
+        
+        page.overlay.append(diet_dlg)
+        diet_dlg.open = True
+        page.update()
+
+    # -------------------------------------------------
     # 로그인 함수
     # -------------------------------------------------
     login_error_text = ft.Text("", color="red")  
@@ -406,6 +514,16 @@ def main(page: ft.Page):
                     ft.Container(height=20),
                     quest_list_view,
                     ft.Container(height=10),
+
+                    ft.FilledButton(
+                        "🥦 식단 분석하기", 
+                        width=300, 
+                        height=50, 
+                        style=ft.ButtonStyle(bgcolor="orange", color="white"), 
+                        on_click=show_diet_modal
+                    ),
+                    ft.Container(height=10),
+
                     ft.FilledButton("랭킹 보기 🏆", width=300, height=50, style=ft.ButtonStyle(bgcolor="green", color="white"), on_click=show_ranking)
                 ], alignment=ft.MainAxisAlignment.START, horizontal_alignment=ft.CrossAxisAlignment.CENTER))
                 

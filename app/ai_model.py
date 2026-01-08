@@ -10,8 +10,8 @@ genai.configure(api_key=API_KEY)
 
 # 👇 이 함수가 서버(main.py)에서 호출할 "핵심 기능"입니다.
 def analyze_food_traffic_light(food_input):
-    # 속도와 가성비가 좋은 Gemini 1.5 Flash 모델 사용
-    model = genai.GenerativeModel('gemini-1.5-flash')
+    # 속도와 가성비가 좋은 Gemini 2.5 Flash 모델 사용
+    model = genai.GenerativeModel('gemini-pro')
 
     # AI에게 내리는 지시사항 (프롬프트)
     prompt = f"""
