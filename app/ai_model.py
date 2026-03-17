@@ -1,17 +1,23 @@
 # 파일 위치: app/ai_model.py
 
-import google.generativeai as genai
+import os
 import json
+import google.generativeai as genai
+from dotenv import load_dotenv
 
-# ⚠️ 여기에 발급받은 실제 API 키를 넣어주세요.
-API_KEY = "AIzaSyBETh6czjW0YDY95oxs4Q43iJwt10W5Sgw" 
+# 🛡️ 1. .env 파일(비밀 금고) 불러오기
+load_dotenv() 
+
+# 🛡️ 2. 금고 안에서 GEMINI_API_KEY 꺼내오기
+# (더 이상 이 파일에 진짜 키를 적지 않습니다! 깃허브에 올라가도 안전해요)
+API_KEY = os.getenv("GEMINI_API_KEY") 
 
 genai.configure(api_key=API_KEY)
 
 # 👇 이 함수가 서버(main.py)에서 호출할 "핵심 기능"입니다.
 def analyze_food_traffic_light(food_input):
-    # 속도와 가성비가 좋은 Gemini 2.5 Flash 모델 사용
-    model = genai.GenerativeModel('gemini-pro')
+    # 속도와 가성비가 좋은 최신 모델 사용
+    model = genai.GenerativeModel('gemini-2.5-flash')
 
     # AI에게 내리는 지시사항 (프롬프트)
     prompt = f"""

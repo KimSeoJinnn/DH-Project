@@ -357,7 +357,7 @@ def main(page: ft.Page):
         except: pass
 
     # -------------------------------------------------
-    # [NEW] AI 식단 분석 팝업 (강력한 디버깅 모드)
+    # [NEW] AI 식단 분석 팝업 (최신 Flet 버전 호환 ✨)
     # -------------------------------------------------
     def show_diet_modal(e):
         print("🚩 [START] 팝업창 열림") 
@@ -369,7 +369,12 @@ def main(page: ft.Page):
         # UI 요소
         food_input = ft.TextField(label="음식 이름 (예: 마라탕)", autofocus=True)
         result_text = ft.Text("음식을 입력하고 엔터를 누르세요.", size=14)
-        traffic_icon = ft.Icon("lens", size=70, color="grey")
+        
+        # 🚦 1. 아이콘 대신 '진짜 빛나는 신호등' 만들기 (소문자 문자열로 변경!)
+        traffic_light_ui = ft.Container(
+            width=80, height=80, border_radius=40,
+            bgcolor="grey300"
+        )
 
         # -----------------------------------------------
         # 👇 여기가 핵심 분석 함수입니다
@@ -383,24 +388,17 @@ def main(page: ft.Page):
                 return
             
             # 로딩 표시
-            result_text.value = "⏳ 통신 시도 중..."
-            traffic_icon.color = "grey"
+            result_text.value = "⏳ AI 코치가 식단을 분석 중입니다..."
+            traffic_light_ui.bgcolor = "grey300" # 👈 여기도 문자열!
+            traffic_light_ui.shadow = None 
             page.update()
             
             try:
                 target_url = f"http://127.0.0.1:8000/analyze?food={food_input.value}"
-                print(f"2️⃣ [요청] 서버로 전송 시도 -> {target_url}")
-                
-                # 타임아웃 10초 설정
                 res = requests.get(target_url, timeout=10)
-                
-                print(f"3️⃣ [응답] 서버 응답 도착! 상태코드: {res.status_code}")
-                print(f"📄 [원본 데이터] {res.text}")  # ⭐ 서버가 보낸 진짜 내용 확인 ⭐
 
                 if res.status_code == 200:
-                    print("4️⃣ [파싱] JSON 데이터 변환 시도...")
                     data = res.json()
-                    print(f"🔍 [변환 데이터] {data}")
 
                     # 리스트 껍질 벗기기
                     if isinstance(data, list):
@@ -410,27 +408,31 @@ def main(page: ft.Page):
                     if 'traffic_light' in data:
                         print("5️⃣ [성공] 필요한 데이터가 다 있습니다.")
                         
-                        color_map = {"Green": "green", "Yellow": "yellow", "Red": "red"}
-                        traffic_icon.color = color_map.get(data['traffic_light'], "grey")
+                        # 🚦 2. 신호등 색깔 맵핑 (에러 안 나게 문자열로 변경!)
+                        color_map = {
+                            "Green": "green500", 
+                            "Yellow": "amber500", 
+                            "Red": "red500"
+                        }
+                        
+                        light_color = color_map.get(data['traffic_light'], "grey500")
+                        traffic_light_ui.bgcolor = light_color
+                        
+                        # 🌟 핵심: 네온사인처럼 빛나는 그림자 효과 추가
+                        traffic_light_ui.shadow = ft.BoxShadow(blur_radius=25, color=light_color)
                         
                         result_text.value = (
-                            f"🍎 {data.get('food_name', '음식')}\n"
-                            f"🚦 {data.get('traffic_light')}\n"
-                            f"🔥 {data.get('calories')}kcal\n"
-                            f"💪 단백질 {data.get('protein')}g\n"
-                            f"💡 {data.get('reason')}"
+                            f"🍎 음식: {data.get('food_name', '음식')}\n"
+                            f"🔥 칼로리: {data.get('calories')}kcal\n"
+                            f"💪 단백질: {data.get('protein')}g\n\n"
+                            f"💡 코치의 한마디:\n{data.get('reason')}"
                         )
                     else:
-                        print("❌ [실패] traffic_light 키가 없습니다.")
                         result_text.value = f"데이터 오류: {data}"
                 else:
-                    print(f"❌ [실패] 서버 에러 코드: {res.status_code}")
                     result_text.value = f"서버 에러 ({res.status_code})"
 
-                print("6️⃣ [종료] 모든 로직 완료.")
-
             except Exception as err:
-                print(f"💥 [에러 발생] {err}")
                 result_text.value = f"에러: {err}"
             
             page.update()
@@ -446,15 +448,15 @@ def main(page: ft.Page):
                 food_input,
                 ft.FilledButton("분석하기", on_click=run_analysis, bgcolor="blue", color="white"),
                 ft.Divider(),
-                ft.Row([traffic_icon], alignment="center"),
+                ft.Row([traffic_light_ui], alignment="center"), 
                 ft.Container(height=10),
                 result_text
             ],
-            height=400, width=300, scroll="auto", spacing=10
+            width=300, scroll="auto", spacing=10 
         )
 
         diet_dlg = ft.AlertDialog(
-            title=ft.Text("🥦 디버깅 모드"),
+            title=ft.Text("🥦 AI 식단 신호등"),
             content=content_column,
             actions=[ft.TextButton("닫기", on_click=close_modal)],
             actions_alignment="end"
@@ -561,4 +563,4 @@ def main(page: ft.Page):
         signup_btn
     ], horizontal_alignment=ft.CrossAxisAlignment.CENTER, alignment=ft.MainAxisAlignment.CENTER))
 
-ft.app(target=main)
+ft.run(main)

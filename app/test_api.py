@@ -1,7 +1,14 @@
-import google.generativeai as genai
+# 파일 위치: app/test_api.py
 
-# 👇 여기에 발급받은 API 키를 넣어주세요
-API_KEY = "AIzaSyBETh6czjW0YDY95oxs4Q43iJwt10W5Sgw" 
+import os
+import google.generativeai as genai
+from dotenv import load_dotenv
+
+# 🛡️ 1. .env 파일(비밀 금고) 불러오기
+load_dotenv() 
+
+# 🛡️ 2. 금고 안에서 GEMINI_API_KEY 꺼내오기
+API_KEY = os.getenv("GEMINI_API_KEY") 
 
 genai.configure(api_key=API_KEY)
 
