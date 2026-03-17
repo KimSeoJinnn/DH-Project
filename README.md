@@ -1,26 +1,31 @@
-# 🥦 DH-Project: 헬린이 키우기 (AI 식단 코칭 앱)
+# 🥦 DH-Project: 헬린이 키우기 (AI Diet & Fitness RPG)
 
-사용자가 먹은 음식을 입력하면 AI가 영양 성분을 분석하고, 헬스 초보자(헬린이)의 관점에서 **신호등 등급(Green, Yellow, Red)**을 매겨주는 스마트 식단 관리 애플리케이션입니다.
+평범한 식단 관리는 지루하니까 음식을 분석하고 운동 퀘스트를 수행하며 자신의 캐릭터를 성장시키는 RPG형 식단 관리 애플리케이션입니다.
 
 ## ✨ 주요 기능
-- **AI 식단 분석**: Google Gemini 2.5 Flash 모델을 활용한 실시간 영양 분석.
-- **식단 신호등**: 음식의 건강도를 직관적인 색상(초록, 노랑, 빨강)과 네온 효과로 표시.
-- **상세 가이드**: 칼로리, 단백질 정보와 함께 헬린이를 위한 AI 코치의 맞춤 조언 제공.
-- **사용자 관리**: 로컬 JSON 기반의 데이터 저장 및 회원가입 기능.
+
+### 1. 🎮 게임 시스템 (Gamification)
+- **레벨 및 경험치**: 식단 분석과 퀘스트 완료를 통해 경험치를 획득하고 레벨업하세요.
+- **데일리 퀘스트**: 매일 주어지는 식단 미션을 달성하고 보상을 받습니다.
+- **실시간 랭킹**: 다른 사용자들과 레벨을 비교하며 동기부여를 얻는 랭킹 시스템을 제공합니다.
+
+### 2. 🚦 AI 식단 신호등 (AI Analysis)
+- **실시간 분석**: Google Gemini 2.5 Flash 모델이 음식의 영양 성분을 즉시 분석합니다.
+- **직관적 UI**: 분석 결과에 따라 **Green(추천), Yellow(보통), Red(주의)** 신호등 불빛이 들어옵니다.
+- **맞춤형 조언**: 단순히 칼로리만 보여주는 게 아니라, 헬스 초보자에게 꼭 필요한 피드백을 제공합니다.
+
+### 3. 💾 데이터 관리
+- **로컬 캐시 시스템**: `quest_data.json`을 통해 사용자의 진행 상황과 퀘스트 상태를 안전하게 저장합니다.
+- **회원가입/로그인**: 개별 사용자 프로필 관리가 가능합니다.
 
 ## 🛠 기술 스택
-- **Frontend**: Flet (Python-based UI Framework)
+- **Frontend**: Flet (Python-based UI)
 - **Backend**: FastAPI, Uvicorn
 - **AI**: Google Generative AI (Gemini API)
-- **Database**: Local JSON File / SQLAlchemy (준비 중)
+- **Environment**: Python 3.10+
 
 ## 🚀 실행 방법
 
-### 1. 가상환경 세팅 및 패키지 설치
+### 1. 패키지 설치
 ```bash
-# 가상환경 생성 및 활성화
-python -m venv venv
-source venv/Scripts/activate  # Windows: venv\Scripts\activate
-
-# 필수 패키지 설치
 pip install -r requirements.txt
