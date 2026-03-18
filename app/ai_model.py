@@ -9,8 +9,10 @@ from dotenv import load_dotenv
 load_dotenv() 
 
 # 🛡️ 2. 금고 안에서 GEMINI_API_KEY 꺼내오기
-# (더 이상 이 파일에 진짜 키를 적지 않습니다! 깃허브에 올라가도 안전해요)
 API_KEY = os.getenv("GEMINI_API_KEY") 
+
+# ⭐⭐⭐ 여기에 추가! (터미널에 키가 잘 불러와지는지 확인)
+print(f"🔑 내 금고 확인 결과: {API_KEY}")
 
 genai.configure(api_key=API_KEY)
 
